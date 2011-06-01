@@ -4,7 +4,6 @@ import logging
 
 from connectioninfo import ConnectionInfo
 
-log = logging.getLogger("TerrariaServer")
 
 class NetworkState:
   Starting = 0
@@ -40,6 +39,8 @@ class ConnectionManager:
 
 class TerrariaServer:
 
+  log = logging.getLogger("TerrariaServer")
+
   def __init__(self, listenAddr, listenPort, password=None):
     self.listenAddress = listenAddr
     self.listenPort = listenPort
@@ -52,21 +53,29 @@ class TerrariaServer:
       self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
       self.socket.bind((self.listenAddress, self.listenPort))
       self.socket.listen(5)
+      self.log.debug("Server listening on " + str(self.listenAddress))
       self.networkState = NetworkState.Running
     except Exception as ex:
-      print ex
+      self.log.error(ex)
       self.networkState = NetworkState.Error
+
+  def __readThread(self):
+    while self.networkState == NetworkState.Running:
+     # do fancy stuff here...
+     pass  
 
   def __mainLoop(self):
     while self.networkState == NetworkState.Running:
       (clientsock, clientaddr) = self.socket.accept()
       # New connection here
-      #log.debug("New connection")
-      print "New connection"
+      self.log.debug("New connection")
       connection = ConnectionInfo(clientsock, clientaddr, self.connectionManager.connectionCount() + 1)
       self.connectionManager.addConnection(connection)
 
   def start(self):
+    self.log.debug("Server starting up...")
     self.__setupSocket()
+    # set up a thread to read from the clients sockets
+    thread.start_new_thread(self.__readThread, ())
     self.__mainLoop()
      
