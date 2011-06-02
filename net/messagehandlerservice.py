@@ -7,7 +7,7 @@ from game.player import Player
 
 
 CONNECTION_REQUEST_FORMAT = '<s' # Little Endian 
-log = logging.getLogger("MessageHandlerService")
+log = logging.getLogger()
 
 class MessageHandlerService:
 
