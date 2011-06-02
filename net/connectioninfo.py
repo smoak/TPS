@@ -5,3 +5,4 @@ class ConnectionInfo:
     self.address = address
     self.clientNumber = clientNumber
     self.data = ""
+    self.authed = False

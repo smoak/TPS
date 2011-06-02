@@ -5,8 +5,28 @@ import select
 import struct
 
 from connectioninfo import ConnectionInfo
+from messagehandlerservice import MessageHandlerService
+from message import Message
 
 HEADER_FORMAT = '<i' # little endian integer
+PROTOCOL_VERSION = 3
+SERVER_VERSION = "Terraria" + str(PROTOCOL_VERSION)
+
+def ByteToHex( byteStr ):
+    """
+    Convert a byte string to it's hex string representation e.g. for output.
+    """
+    
+    # Uses list comprehension which is a fractionally faster implementation than
+    # the alternative, more readable, implementation below
+    #   
+    #    hex = []
+    #    for aChar in byteStr:
+    #        hex.append( "%02X " % ord( aChar ) )
+    #
+    #    return ''.join( hex ).strip()        
+
+    return ''.join( [ "%02X " % ord( x ) for x in byteStr ] ).strip()
 
 class NetworkState:
   Starting = 0
@@ -68,6 +88,7 @@ class TerrariaServer:
     self.password = password
     self.networkState = NetworkState.Closed
     self.connectionManager = ConnectionManager()
+    self.messageHandlerService = MessageHandlerService(self.connectionManager)
 
   def __setupSocket(self):
     try:
@@ -90,7 +111,11 @@ class TerrariaServer:
       connection.data = connection.socket.recv(msgLen)
       self.log.debug("Got message with " + str(msgLen) + " size")
       # here is where we dispatch the message to a message handler to further process...
+      messageType = struct.unpack('<B', connection.data[0])[0]
+      message = Message(messageType)
+      message.appendRaw(connection.data[1:])
       self.log.debug("Processing message...")
+      self.messageHandlerService.processMessage(message, connection)
     except Exception as ex:
       self.log.error(ex)
       self.connectionManager.removeConnection(connection)
