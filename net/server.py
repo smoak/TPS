@@ -13,6 +13,8 @@ PROTOCOL_VERSION = 3
 SERVER_VERSION = "Terraria" + str(PROTOCOL_VERSION)
 MESSAGE_TYPE_FORMAT = '<B' # little endian byte (char)
 
+log = logging.getLogger()
+
 def ByteToHex( byteStr ):
     """
     Convert a byte string to it's hex string representation e.g. for output.
@@ -81,8 +83,6 @@ class ConnectionManager:
 
 class TerrariaServer:
 
-  log = logging.getLogger("TerrariaServer")
-
   def __init__(self, listenAddr, listenPort, password=None):
     self.listenAddress = listenAddr
     self.listenPort = listenPort
@@ -96,14 +96,14 @@ class TerrariaServer:
       self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
       self.socket.bind((self.listenAddress, self.listenPort))
       self.socket.listen(5)
-      self.log.debug("Server listening on " + str(self.listenAddress))
+      log.debug("Server listening on " + str(self.listenAddress))
       self.networkState = NetworkState.Running
     except Exception as ex:
-      self.log.error(ex)
+      log.error(ex)
       self.networkState = NetworkState.Error
 
   def __doProtocol(self, connection):
-    self.log.debug("Got data from socket...doing protocol goodness")
+    log.debug("Got data from socket...doing protocol goodness")
     try:
       header = connection.socket.recv(4) # first 4 bytes tell us the message length
       if len(header) == 0:
@@ -111,15 +111,15 @@ class TerrariaServer:
       msgLen = struct.unpack(HEADER_FORMAT, header)[0] # unpack returns a tuple 
       connection.data = connection.socket.recv(msgLen)
       # Now get the rest of the message from the client....
-      self.log.debug("Got message with " + str(msgLen) + " size")
+      log.debug("Got message with " + str(msgLen) + " size")
       # first byte of the data is the message Type
       messageType = struct.unpack(MESSAGE_TYPE_FORMAT, connection.data[0])[0]
       message = Message(messageType)
       message.appendRaw(connection.data[1:])
-      self.log.debug("Processing message...")
+      log.debug("Processing message...")
       self.messageHandlerService.processMessage(message, connection)
     except Exception as ex:
-      self.log.error(ex)
+      log.error(ex)
       self.connectionManager.removeConnection(connection)
 
   def __readThread(self):
@@ -132,12 +132,12 @@ class TerrariaServer:
     while self.networkState == NetworkState.Running:
       (clientsock, clientaddr) = self.socket.accept()
       # New connection here
-      self.log.debug("New connection")
+      log.debug("New connection")
       connection = ConnectionInfo(clientsock, clientaddr, self.connectionManager.connectionCount() + 1)
       self.connectionManager.addConnection(connection)
 
   def start(self):
-    self.log.debug("Server starting up...")
+    log.debug("Server starting up...")
     self.__setupSocket()
     # set up a thread to read from the clients sockets
     thread.start_new_thread(self.__readThread, ())
