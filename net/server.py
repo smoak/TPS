@@ -11,6 +11,7 @@ from message import Message
 HEADER_FORMAT = '<i' # little endian integer
 PROTOCOL_VERSION = 3
 SERVER_VERSION = "Terraria" + str(PROTOCOL_VERSION)
+MESSAGE_TYPE_FORMAT = '<B' # little endian byte (char)
 
 def ByteToHex( byteStr ):
     """
@@ -88,7 +89,7 @@ class TerrariaServer:
     self.password = password
     self.networkState = NetworkState.Closed
     self.connectionManager = ConnectionManager()
-    self.messageHandlerService = MessageHandlerService(self.connectionManager)
+    self.messageHandlerService = MessageHandlerService(self)
 
   def __setupSocket(self):
     try:
@@ -109,9 +110,10 @@ class TerrariaServer:
         self.connectionManager.removeConnection(connection)
       msgLen = struct.unpack(HEADER_FORMAT, header)[0] # unpack returns a tuple 
       connection.data = connection.socket.recv(msgLen)
+      # Now get the rest of the message from the client....
       self.log.debug("Got message with " + str(msgLen) + " size")
-      # here is where we dispatch the message to a message handler to further process...
-      messageType = struct.unpack('<B', connection.data[0])[0]
+      # first byte of the data is the message Type
+      messageType = struct.unpack(MESSAGE_TYPE_FORMAT, connection.data[0])[0]
       message = Message(messageType)
       message.appendRaw(connection.data[1:])
       self.log.debug("Processing message...")
