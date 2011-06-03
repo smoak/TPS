@@ -15,22 +15,6 @@ MESSAGE_TYPE_FORMAT = '<B' # little endian byte (char)
 
 log = logging.getLogger()
 
-def ByteToHex( byteStr ):
-    """
-    Convert a byte string to it's hex string representation e.g. for output.
-    """
-    
-    # Uses list comprehension which is a fractionally faster implementation than
-    # the alternative, more readable, implementation below
-    #   
-    #    hex = []
-    #    for aChar in byteStr:
-    #        hex.append( "%02X " % ord( aChar ) )
-    #
-    #    return ''.join( hex ).strip()        
-
-    return ''.join( [ "%02X " % ord( x ) for x in byteStr ] ).strip()
-
 class NetworkState:
   Starting = 0
   Running = 1
@@ -40,9 +24,10 @@ class NetworkState:
 
 class ConnectionManager:
 
-  def __init__(self):
+  def __init__(self, world):
     self.__connections = []
     self.locker = thread.allocate_lock()
+    self.world = world
 
   def connectionCount(self):
     connectionCount = 0
@@ -80,6 +65,19 @@ class ConnectionManager:
         break
     self.locker.release()
     return result
+
+  def getNewClientId(self):
+    clientId = 0
+    idList = []
+    self.locker.acquire()
+    # get a list of the clientIds
+    for ci in self.__connections:
+      idList.append(ci.clientNumber)      
+    self.locker.release()
+    # now we just want to find the next available id
+    while clientId in idList:
+      clientId += 1
+    return clientId
 
 class TerrariaServer:
 
@@ -124,7 +122,10 @@ class TerrariaServer:
 
   def __readThread(self):
     while self.networkState == NetworkState.Running:
-      socketsToRead, socketsToWrite, socketsWithError = select.select(self.connectionManager.getListOfSocketsForSelect(), [], [], 5.0)
+      socketList = self.connectionManager.getListOfSocketsForSelect()
+      socketsToRead, socketsToWrite, socketsWithError = select.select(socketList, [], socketList, 0)
+      for serr in socketsWithError:
+        self.connectionManager.removeConnection(self.connectionManager.findConnection(serr))
       for s in socketsToRead:
         self.__doProtocol(self.connectionManager.findConnection(s))
 
@@ -132,8 +133,9 @@ class TerrariaServer:
     while self.networkState == NetworkState.Running:
       (clientsock, clientaddr) = self.socket.accept()
       # New connection here
-      log.debug("New connection")
-      connection = ConnectionInfo(clientsock, clientaddr, self.connectionManager.connectionCount() + 1)
+      log.debug("New connection from " + str(clientaddr))
+      connection = ConnectionInfo(clientsock, clientaddr, self.connectionManager.getNewClientId())
+      log.debug("Client id: " + str(connection.clientNumber))
       self.connectionManager.addConnection(connection)
 
   def start(self):
