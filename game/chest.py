@@ -1,4 +1,4 @@
-MAX_ITEMS = 20
+MAX_CHEST_ITEMS = 20
 
 class Chest:
   def __init__(self):
