@@ -23,6 +23,15 @@ class World:
     self.rockLayer = 20
     self.worldId = 0
     self.tiles = []
+    self.maxTilesX = 0
+    self.maxTilesY = 0
+    self.leftWorld = 0
+    self.rightWorld = 0
+    self.topWorld = 0
+    self.bottomWorld = 0
+    self.spawnTileX = 0
+    self.spawnTileY = 0
+    self.worldSurface = 0.0
 
   def getSectionX(self, x):
     return x / 200

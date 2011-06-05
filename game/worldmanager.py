@@ -3,8 +3,11 @@ import struct
 
 from world import World
 from chest import Chest
+from tile import Tile
 
 log = logging.getLogger()
+
+MAX_CHEST_ITEMS = 20
 
 class WorldManager:
 
@@ -18,9 +21,6 @@ class WorldManager:
       log.error(ex)
       print ex
 
-  def __isImportant(self, tileType):
-    return tileType in [3, 5, 10, 11, 12, 13, 14, 15, 16, 17, 18, 20, 21, 24, 26, 27, 28, 29, 31, 33, 34, 35, 36, 42, 50, 55, 61, 71, 72, 73, 74, 77, 78, 79]
-
   def __loadWorldFromFile(self, worldFile):
     f = open(worldFile, 'rb')
     # FIXME: write some sort of WorldReader class for all this stuff
@@ -29,19 +29,19 @@ class WorldManager:
       # first 4 bytes are the version
       fileVersion = struct.unpack('<i', f.read(4))[0]
       worldNameLen = struct.unpack('<B', f.read(1))[0]
-      worldName = f.read(worldNameLen)
-      log.debug("World name: " + worldName)
-      worldId = struct.unpack('<i', f.read(4))[0]
-      leftWorld = struct.unpack('<i', f.read(4))[0]
-      rightWorld = struct.unpack('<i', f.read(4))[0]
-      topWorld = struct.unpack('<i', f.read(4))[0]
-      bottomWorld = struct.unpack('<i', f.read(4))[0]
-      maxTilesY = struct.unpack('<i', f.read(4))[0]
-      maxTilesX = struct.unpack('<i', f.read(4))[0]
-      spawnTileX = struct.unpack('<i', f.read(4))[0]
-      spawnTileY = struct.unpack('<i', f.read(4))[0]
-      worldSurface = struct.unpack('<d', f.read(8))[0]
-      rockLayer = struct.unpack('<d', f.read(8))[0]
+      world.name = f.read(worldNameLen)
+      log.debug("World name: " + world.name)
+      world.worldId = struct.unpack('<i', f.read(4))[0]
+      world.leftWorld = struct.unpack('<i', f.read(4))[0]
+      world.rightWorld = struct.unpack('<i', f.read(4))[0]
+      world.topWorld = struct.unpack('<i', f.read(4))[0]
+      world.bottomWorld = struct.unpack('<i', f.read(4))[0]
+      world.maxTilesY = struct.unpack('<i', f.read(4))[0]
+      world.maxTilesX = struct.unpack('<i', f.read(4))[0]
+      world.spawnTileX = struct.unpack('<i', f.read(4))[0]
+      world.spawnTileY = struct.unpack('<i', f.read(4))[0]
+      world.worldSurface = struct.unpack('<d', f.read(8))[0]
+      world.rockLayer = struct.unpack('<d', f.read(8))[0]
       tempTime = struct.unpack('<d', f.read(8))[0]
       tempDayTime = struct.unpack('<?', f.read(1))[0]
       tempMoonPhase = struct.unpack('<i', f.read(4))[0]
@@ -58,7 +58,7 @@ class WorldManager:
       invasionSize = struct.unpack('<i', f.read(4))[0]
       invasionType = struct.unpack('<i', f.read(4))[0]
       invasionX = struct.unpack('<d', f.read(8))[0]
-      self.readTiles(f, world, maxTilesX, maxTilesY)
+      self.readTiles(f, world)
       self.readChests(f, world)
       self.readSigns(f, world)
       someFlag = struct.unpack('<?', f.read(1))[0]
@@ -85,27 +85,30 @@ class WorldManager:
         num3 = struct.unpack('<i', f.read(4))[0]
         num4 = struct.unpack('<i', f.read(4))[0]
     
-  def readTiles(self, f, world, maxTilesX, maxTilesY):
+  def readTiles(self, f, world):
     log.debug("reading tiles...")
-    for x in range(maxTilesX):
-      for y in range(maxTilesY):
-        active = struct.unpack('<?', f.read(1))[0]
-        if active:
-          tileType = struct.unpack('<B', f.read(1))[0]
-          if self.__isImportant(tileType):
-            frameX = struct.unpack('<h', f.read(2))[0]
-            frameY = struct.unpack('<h', f.read(2))[0]
+    log.debug("maxTilesX: " + str(world.maxTilesX))
+    log.debug("maxTilesY: " + str(world.maxTilesY))
+    for x in range(world.maxTilesX):
+      for y in range(world.maxTilesY):
+        tile = Tile()
+        tile.isActive = struct.unpack('<?', f.read(1))[0]
+        if tile.isActive:
+          tile.tileType = struct.unpack('<B', f.read(1))[0]
+          if Tile.isImportant(tile.tileType):
+            tile.frameX = struct.unpack('<h', f.read(2))[0]
+            tile.frameY = struct.unpack('<h', f.read(2))[0]
           else:
-            frameX = -1
-            frameY = -1
-        lighted = struct.unpack('<?', f.read(1))[0]
+            tile.frameX = -1
+            tile.frameY = -1
+        tile.isLighted = struct.unpack('<?', f.read(1))[0]
         tmp = struct.unpack('<?', f.read(1))[0]
         if tmp:
-          wall = struct.unpack('<B', f.read(1))[0]
+          tile.wall = struct.unpack('<B', f.read(1))[0]
         tmp2 = struct.unpack('<?', f.read(1))[0]
         if tmp2:
-          liquid = struct.unpack('<B', f.read(1))[0]
-          lava = struct.unpack('<?', f.read(1))[0]
+          tile.liquid = struct.unpack('<B', f.read(1))[0]
+          tile.isLava = struct.unpack('<?', f.read(1))[0]
 
   def readChests(self, f, world):
     log.debug("reading chests...")
@@ -118,4 +121,4 @@ class WorldManager:
           chestItemStackSize = struct.unpack('<B', f.read(1))[0]
           if chestItemStackSize > 0:
             itemNameLen = struct.unpack('<B', f.read(1))[0]
-            itemName = f.read(iteamNameLen)
+            itemName = f.read(itemNameLen)
