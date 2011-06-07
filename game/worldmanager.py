@@ -61,19 +61,24 @@ class WorldManager:
       self.readTiles(f, world)
       self.readChests(f, world)
       self.readSigns(f, world)
-      someFlag = struct.unpack('<?', f.read(1))[0]
-      while someFlag:
-        npcNameLen = struct.unpack('<B', f.read(1))[0]
-        npcName = f.read(npcNameLen)
-        npcX = struct.unpack('<f', f.read(4))[0]
-        npcY = struct.unpack('<f', f.read(4))[0]
-        homeless = struct.unpack('<?', f.read(1))[0]
-        homeTileX = struct.unpack('<i', f.read(4))[0]
-        homeTileY = struct.unpack('<i', f.read(4))[0]
-        someFlag = struct.unpack('<?', f.read(1))
+      log.debug("At file pos: " + str(f.tell()))
+      self.readNPCs(f, world)
     finally:
       f.close()
     return world 
+
+  def readNPCs(self, f, world):
+    log.debug("Reading NPCs...")
+    someFlag = struct.unpack('<?', f.read(1))[0]
+    while someFlag:
+      npcNameLen = struct.unpack('<B', f.read(1))[0]
+      npcName = f.read(npcNameLen)
+      npcX = struct.unpack('<f', f.read(4))[0]
+      npcY = struct.unpack('<f', f.read(4))[0]
+      homeless = struct.unpack('<?', f.read(1))[0]
+      homeTileX = struct.unpack('<i', f.read(4))[0]
+      homeTileY = struct.unpack('<i', f.read(4))[0]
+      someFlag = struct.unpack('<?', f.read(1))[0]
  
   def readSigns(self, f, world):
     log.debug("reading signs...")
