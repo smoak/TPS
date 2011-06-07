@@ -20,6 +20,7 @@ class WorldManager:
     except Exception as ex:
       log.error(ex)
       print ex
+    return world
 
   def __loadWorldFromFile(self, worldFile):
     f = open(worldFile, 'rb')
@@ -36,16 +37,17 @@ class WorldManager:
       world.rightWorld = struct.unpack('<i', f.read(4))[0]
       world.topWorld = struct.unpack('<i', f.read(4))[0]
       world.bottomWorld = struct.unpack('<i', f.read(4))[0]
-      world.maxTilesY = struct.unpack('<i', f.read(4))[0]
-      world.maxTilesX = struct.unpack('<i', f.read(4))[0]
-      world.spawnTileX = struct.unpack('<i', f.read(4))[0]
-      world.spawnTileY = struct.unpack('<i', f.read(4))[0]
+      world.height = struct.unpack('<i', f.read(4))[0]
+      world.width = struct.unpack('<i', f.read(4))[0]
+      spawnTileX = struct.unpack('<i', f.read(4))[0]
+      spawnTileY = struct.unpack('<i', f.read(4))[0]
+      world.spawn = [spawnTileX, spawnTileY]
       world.worldSurface = struct.unpack('<d', f.read(8))[0]
       world.rockLayer = struct.unpack('<d', f.read(8))[0]
-      tempTime = struct.unpack('<d', f.read(8))[0]
-      tempDayTime = struct.unpack('<?', f.read(1))[0]
-      tempMoonPhase = struct.unpack('<i', f.read(4))[0]
-      tempBloodMoon = struct.unpack('<?', f.read(1))[0]
+      world.time = struct.unpack('<d', f.read(8))[0]
+      world.isDay = struct.unpack('<?', f.read(1))[0]
+      world.moonphase = struct.unpack('<i', f.read(4))[0]
+      world.isBloodMoon = struct.unpack('<?', f.read(1))[0]
       dungeonX = struct.unpack('<i', f.read(4))[0]
       dungeonY = struct.unpack('<i', f.read(4))[0]
       downedBoss1 = struct.unpack('<?', f.read(1))[0]
@@ -92,10 +94,10 @@ class WorldManager:
     
   def readTiles(self, f, world):
     log.debug("reading tiles...")
-    log.debug("maxTilesX: " + str(world.maxTilesX))
-    log.debug("maxTilesY: " + str(world.maxTilesY))
-    for x in range(world.maxTilesX):
-      for y in range(world.maxTilesY):
+    log.debug("Width: " + str(world.width))
+    log.debug("Height: " + str(world.height))
+    for x in range(world.width):
+      for y in range(world.height):
         tile = Tile()
         tile.isActive = struct.unpack('<?', f.read(1))[0]
         if tile.isActive:

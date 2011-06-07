@@ -4,10 +4,11 @@ from net.server import TerrariaServer
 from game.worldmanager import WorldManager
 
 def main():
-  worldManager = WorldManager()
   
   logging.config.fileConfig('logging.conf')
-  s = TerrariaServer("", 7777, None)
+  worldManager = WorldManager()
+  world = worldManager.load('world2')
+  s = TerrariaServer("", 7777, world, None)
   s.start()
 
 if __name__ == '__main__':
