@@ -17,8 +17,10 @@ class MessageHandlerService:
     self.server = server
 
   def __processConnectionRequest(self, message, connection):
+    log.debug("Got connection request")
     clientVersion = message.buf[1:]
     if clientVersion != server.SERVER_VERSION:
+      log.debug("Unsupported client version. Got: " + str(clientVersion))
       self.connectionManager.removeConnection(connection)
       return
 
@@ -89,28 +91,38 @@ class MessageHandlerService:
     log.debug("Got world data message")
     world = self.server.world
     response = Message(MessageType.WorldData)
-    response.appendInt(world.time)
-    response.appendByte(world.isDay)
-    response.appendByte(world.moonphase)
-    response.appendByte(world.isBloodMoon)
+    try:
+      response.appendInt(world.time)
+      response.appendByte(world.isDay)
+      response.appendByte(world.moonphase)
+      response.appendByte(world.isBloodMoon)
 
-    response.appendInt(world.width) # maxTilesX
-    response.appendInt(world.height) # maxTilesY
+      response.appendInt(world.width) # maxTilesX
+      response.appendInt(world.height) # maxTilesY
 
-    spawn = world.spawn
-    response.appendInt(spawn[0])
-    response.appendInt(spawn[1])
+      spawn = world.spawn
+      response.appendInt(spawn[0])
+      response.appendInt(spawn[1])
     
-    response.appendInt(world.dirtLayer)
-    response.appendInt(world.rockLayer)
+      response.appendInt(world.dirtLayer)
+      response.appendInt(world.rockLayer)
 
-    response.appendByte(world.worldId) # World Id
-    response.appendRaw(world.name)
-    connection.socket.send(response.create())
+      # NOTE: This is 0 because Terraria saves the world id
+      # incorrectly (e.g. 610775162) so we just send 0...
+      response.appendByte(0) # World Id
+
+      response.appendRaw(world.name)
+      connection.socket.send(response.create())
+    except Exception as ex:
+      log.error(ex)
+
+  def __processTileBlockRequestMessage(message, connection):
+    log.debug("Got tile block request")
     
 
   def processMessage(self, message, connection):
     if not connection.authed and message.messageType != MessageType.ConnectionRequest and message.messageType != MessageType.PasswordResponse:
+      log.debug("Connection not authed!")
       self.connectionManager.removeConnection(connection)
       return      
     if message.messageType == MessageType.ConnectionRequest:
@@ -121,3 +133,5 @@ class MessageHandlerService:
       self.__processInventoryDataMessage(message, connection)
     elif message.messageType == MessageType.RequestWorldData:
       self.__processRequestWorldDataMessage(message, connection)
+    elif message.messageType == MessageType.TileBlockRequest:
+      self.__processTileBlockRequestMessage(message, connection)

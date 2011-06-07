@@ -9,7 +9,7 @@ from messagehandlerservice import MessageHandlerService
 from message import Message
 
 HEADER_FORMAT = '<i' # little endian integer
-PROTOCOL_VERSION = 3
+PROTOCOL_VERSION = 4
 SERVER_VERSION = "Terraria" + str(PROTOCOL_VERSION)
 MESSAGE_TYPE_FORMAT = '<B' # little endian byte (char)
 
@@ -81,12 +81,13 @@ class ConnectionManager:
 
 class TerrariaServer:
 
-  def __init__(self, listenAddr, listenPort, password=None):
+  def __init__(self, listenAddr, listenPort, world, password=None):
     self.listenAddress = listenAddr
     self.listenPort = listenPort
     self.password = password
+    self.world = world
     self.networkState = NetworkState.Closed
-    self.connectionManager = ConnectionManager()
+    self.connectionManager = ConnectionManager(self.world)
     self.messageHandlerService = MessageHandlerService(self)
 
   def __setupSocket(self):
