@@ -41,6 +41,10 @@ class Message:
     self.buf = self.buf + struct.pack('<i', i)
     self.size = len(self.buf)    
 
+  def appendInt16(self, i):
+    self.buf = self.buf + struct.pack('<h', i)
+    self.size = len(self.buf)
+
   def appendRaw(self, rawData):
     self.buf = self.buf + rawData
     self.size = len(self.buf)

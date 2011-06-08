@@ -22,7 +22,7 @@ class World:
     self.dirtLayer = 40
     self.rockLayer = 20
     self.worldId = 0
-    self.tiles = []
+    self.tiles = {}
     self.leftWorld = 0
     self.rightWorld = 0
     self.topWorld = 0
