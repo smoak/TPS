@@ -10,7 +10,8 @@ class TileFlags:
 
 IMPORTANT_TILES = [3, 5, 10, 11, 12, 13, 14, 15, 16, 17, 18, 20, 21, 24, 26, 27, 28, 29, 31, 33, 34, 35, 36, 42, 50, 55, 61, 71, 72, 73, 74, 77, 78, 79]
 
-class Tile:
+class Tile(object):
+  __slots__ = ["tileType", "isActive", "frameX", "frameY", "wall", "isLava", "isLighted", "liquid"]
   def __init__(self):
     self.tileType = 0
     self.isActive = False

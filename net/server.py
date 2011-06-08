@@ -105,7 +105,8 @@ class TerrariaServer:
     log.debug("Got data from socket...doing protocol goodness")
     try:
       header = connection.socket.recv(4) # first 4 bytes tell us the message length
-      if len(header) == 0:
+      if len(header) < 4:
+        log.debug("Got invalid header...disconnecting client ")
         self.connectionManager.removeConnection(connection)
       msgLen = struct.unpack(HEADER_FORMAT, header)[0] # unpack returns a tuple 
       connection.data = connection.socket.recv(msgLen)
@@ -124,7 +125,7 @@ class TerrariaServer:
   def __readThread(self):
     while self.networkState == NetworkState.Running:
       socketList = self.connectionManager.getListOfSocketsForSelect()
-      socketsToRead, socketsToWrite, socketsWithError = select.select(socketList, [], socketList, 0)
+      socketsToRead, socketsToWrite, socketsWithError = select.select(socketList, [], socketList, 1)
       for serr in socketsWithError:
         self.connectionManager.removeConnection(self.connectionManager.findConnection(serr))
       for s in socketsToRead:

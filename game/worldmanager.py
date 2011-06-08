@@ -96,27 +96,24 @@ class WorldManager:
     log.debug("reading tiles...")
     log.debug("Width: " + str(world.width))
     log.debug("Height: " + str(world.height))
+    empty = Tile()
+    world.tiles = [[empty for y in range(world.height)] for x in range(world.width)]
     for x in range(world.width):
       for y in range(world.height):
-        tile = Tile()
-        tile.isActive = struct.unpack('<?', f.read(1))[0]
-        if tile.isActive:
-          tile.tileType = struct.unpack('<B', f.read(1))[0]
-          if Tile.isImportant(tile.tileType):
-            tile.frameX = struct.unpack('<h', f.read(2))[0]
-            tile.frameY = struct.unpack('<h', f.read(2))[0]
-          else:
-            tile.frameX = -1
-            tile.frameY = -1
-        tile.isLighted = struct.unpack('<?', f.read(1))[0]
+        world.tiles[x][y].isActive = struct.unpack('<?', f.read(1))[0]
+        if world.tiles[x][y].isActive:
+          world.tiles[x][y].tileType = struct.unpack('<B', f.read(1))[0]
+          if Tile.isImportant(world.tiles[x][y].tileType):
+            world.tiles[x][y].frameX = struct.unpack('<h', f.read(2))[0]
+            world.tiles[x][y].frameY = struct.unpack('<h', f.read(2))[0]
+        world.tiles[x][y].isLighted = struct.unpack('<?', f.read(1))[0]
         tmp = struct.unpack('<?', f.read(1))[0]
         if tmp:
-          tile.wall = struct.unpack('<B', f.read(1))[0]
+          world.tiles[x][y].wall = struct.unpack('<B', f.read(1))[0]
         tmp2 = struct.unpack('<?', f.read(1))[0]
         if tmp2:
-          tile.liquid = struct.unpack('<B', f.read(1))[0]
-          tile.isLava = struct.unpack('<?', f.read(1))[0]
-#        world.tiles[(x,y)] = tile
+          world.tiles[x][y].liquid = struct.unpack('<B', f.read(1))[0]
+          world.tiles[x][y].isLava = struct.unpack('<?', f.read(1))[0]
 
   def readChests(self, f, world):
     log.debug("reading chests...")
