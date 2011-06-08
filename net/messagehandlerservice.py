@@ -115,9 +115,81 @@ class MessageHandlerService:
       connection.socket.send(response.create())
     except Exception as ex:
       log.error(ex)
+  
+  def __sendSction(self, coords, connection):
+    log.debug("Sending section")
+    sectionX = coords[0]
+    sectionY = coords[1]
+    world = self.server.world
+    if sectionX >= 0 and sectionY >= 0:
+      toSectionX = sectionX * 200
+      toSectionY = sectionY * 200
+      for i in range(toSectionY, toSectionY + 150):
+        tileSectionMsg = Message(MessageType.TileSection)
+        tileSectionMsg.appendInt16(200) 
+        tileSectionMsg.appendInt(toSectionX)
+        tileSectionMsg.appendInt(i)
+        for j in range(toSectionX, (200 + toSectionX)):
+          tile = world.tiles[(j, i)]
+          tileSectionMsg.appendByte(tile.getFlags())
+          if tile.isActive:
+            tileSectionMsg.appendByte(tile.tileType)
+            # append important stuff
 
-  def __processTileBlockRequestMessage(message, connection):
+  def __sendItemInfo(self, connection):
+    log.debug("Sending item info...")
+
+  def __sendNpcInfo(self, connection):
+    log.debug("Sending NPC info...")
+
+  def __processTileBlockRequestMessage(self, message, connection):
     log.debug("Got tile block request")
+    x,y = struct.unpack('<ii', message[1:10])
+    log.debug("Requesting tile: (" + str(x) + ", " + str(y) + ")")
+    flag = True
+    if x == -1 or y == -1:
+      flag = False
+    if x < 10 or x > self.server.world.width - 10:
+      flag = False 
+    if y < 10 or y > self.server.world.height - 10:
+      flag = False
+    num7 = 1350
+    if flag:
+      num7 = num7 * 2
+    response = Message(MessageType.TileLoading)
+    response.appendInt(num7)
+    response.appendRaw("Receiving tile data")
+    connection.socket.send(response.create())
+    sectionX = self.server.world.getSectionX(self.server.world.spawn[0])
+    sectionY = self.server.world.getSectionY(self.server.world.spawn[1])
+    for j in range(sectionX - 2, sectionX + 3):
+      for k in range(sectionY - 1, sectionY + 2):
+        self.__sendSection((j, k), connection)
+    if flag:
+      x = self.server.world.getSectionX(x)
+      y = self.server.world.getSectionY(y)
+      for j in range(x - 2, x + 3):
+        for k in range(y - 1, y + 2):
+          self.__sendSection((j,k), connection)
+      tileConfirm = Message(MessageType.TileConfirmed)
+      tileConfirm.appendInt(x - 2)
+      tileConfirm.appendInt(y - 1)
+      tileConfirm.appendInt(x + 2)
+      tileConfirm.appendInt(y + 1)
+      connection.socket.send(tileConfirm.create())
+    # More tiles...
+    tileConfirm = Message(MessageType.TileConfirmed)
+    tileConfirm.appendInt(sectionX - 2)
+    tileConfirm.appendInt(sectionY - 1)
+    tileConfirm.appendInt(sectionX + 2)
+    tileConfirm.appendInt(sectionY + 1)
+    connection.socket.send(tileConfirm.create())
+    # Now ask for spawn info
+    response = Message(MessageType.Spawn)
+    connection.socket.send(response.create())
+    # Now send item info
+    self.__sendItemInfo(connection)
+    self.__sendNpcInfo(connection)
     
 
   def processMessage(self, message, connection):
