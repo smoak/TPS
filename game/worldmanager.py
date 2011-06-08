@@ -116,6 +116,7 @@ class WorldManager:
         if tmp2:
           tile.liquid = struct.unpack('<B', f.read(1))[0]
           tile.isLava = struct.unpack('<?', f.read(1))[0]
+#        world.tiles[(x,y)] = tile
 
   def readChests(self, f, world):
     log.debug("reading chests...")

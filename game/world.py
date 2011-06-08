@@ -29,6 +29,8 @@ class World:
     self.bottomWorld = 0
     self.spawn = []
     self.worldSurface = 0.0
+    self.items = []
+    self.npcs = []
 
   def getSectionX(self, x):
     return x / 200

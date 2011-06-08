@@ -53,6 +53,10 @@ class Message:
     self.buf = self.buf + struct.pack('<B', b)
     self.size = len(self.buf)
 
+  def appendFloat(self, f):
+    self.buf = self.buf + struct.pack('<f', f)
+    self.size = len(self.buf)
+
   def create(self):
     result = struct.pack('<i', self.size)
     result = result + self.buf

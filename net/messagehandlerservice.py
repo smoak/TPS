@@ -120,6 +120,7 @@ class MessageHandlerService:
     log.debug("Sending section")
     sectionX = coords[0]
     sectionY = coords[1]
+    log.debug("(" + str(sectionX) + ", " + str(sectionY) + ")")
     world = self.server.world
     if sectionX >= 0 and sectionY >= 0:
       toSectionX = sectionX * 200
@@ -135,16 +136,33 @@ class MessageHandlerService:
           if tile.isActive:
             tileSectionMsg.appendByte(tile.tileType)
             # append important stuff
+            if Tile.isImportant(tile.tileType):
+              tileSectionMsg.appendInt16(tile.frameX)
+              tileSectionMsg.appendInt16(tile.frameY)
+          if tile.wall > 0:
+            tileSectionMsg.appendByte(tile.wall)
+          if tile.liquid > 0:
+            tileSectionMsg.appendByte(tile.liquid)
+            tileSectionMsg.appendByte(tile.isLava)
+        connection.socket.send(tileSectionMsg.create())  
 
   def __sendItemInfo(self, connection):
     log.debug("Sending item info...")
+#    for i in range(200):
+#      itemInfoMsg = Message(MessageType.ItemInfo)
+#      item = self.server.world.items[i]
+#      itemInfoMsg.appendInt(i)
+#      itemInfoMsg.appendFloat(
+#      itemOwnerInfoMsg = Message(MessageType.ItemOwnerInfo)
+    
 
   def __sendNpcInfo(self, connection):
     log.debug("Sending NPC info...")
+    
 
   def __processTileBlockRequestMessage(self, message, connection):
     log.debug("Got tile block request")
-    x,y = struct.unpack('<ii', message[1:10])
+    x,y = struct.unpack('<ii', message[2:10])
     log.debug("Requesting tile: (" + str(x) + ", " + str(y) + ")")
     flag = True
     if x == -1 or y == -1:
@@ -190,7 +208,22 @@ class MessageHandlerService:
     # Now send item info
     self.__sendItemInfo(connection)
     self.__sendNpcInfo(connection)
-    
+
+  def __processSpawnMessage(self, message, connection):
+    log.debug("Processing spawn message")
+    spawnX, spawnY = struct.unpack('<ii', message[2:10])
+    connection.player.spawn = (spawnX, spawnY)
+    response = Message(MessageType.SendSpawn)
+    connection.socket.send(response.create())
+
+  def __processPlayerHealthUpdateMessage(self, message, connection):
+    log.debug("got player health update message")
+
+  def __processPlayerManaUpdateMessage(self, message, connection):
+    log.debug("got player mana update message")
+
+  def __processSendSpawnMessage(self, message, connection):
+    log.debug("got send spawn message")
 
   def processMessage(self, message, connection):
     if not connection.authed and message.messageType != MessageType.ConnectionRequest and message.messageType != MessageType.PasswordResponse:
@@ -207,3 +240,11 @@ class MessageHandlerService:
       self.__processRequestWorldDataMessage(message, connection)
     elif message.messageType == MessageType.TileBlockRequest:
       self.__processTileBlockRequestMessage(message, connection)
+    elif message.messageType == MessageType.Spawn:
+      self.__processSpawnMessage(message, connection)
+    elif message.messageType == MessageType.PlayerHealthUpdate:
+      self.__processPlayerHealthUpdateMessage(message, connection)
+    elif message.messageType == MessageType.PlayerManaUpdate:
+      self.__processPlayerManaUpdateMessage(message, connection)
+    elif message.messageType == MessageType.SendSpawn:
+      self.__processSendSpawnMessage(message, connection)
