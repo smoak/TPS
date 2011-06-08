@@ -116,7 +116,7 @@ class MessageHandlerService:
     except Exception as ex:
       log.error(ex)
   
-  def __sendSction(self, coords, connection):
+  def __sendSection(self, coords, connection):
     log.debug("Sending section")
     sectionX = coords[0]
     sectionY = coords[1]
@@ -131,7 +131,7 @@ class MessageHandlerService:
         tileSectionMsg.appendInt(toSectionX)
         tileSectionMsg.appendInt(i)
         for j in range(toSectionX, (200 + toSectionX)):
-          tile = world.tiles[(j, i)]
+          tile = world.tiles[j][i]
           tileSectionMsg.appendByte(tile.getFlags())
           if tile.isActive:
             tileSectionMsg.appendByte(tile.tileType)
@@ -162,7 +162,7 @@ class MessageHandlerService:
 
   def __processTileBlockRequestMessage(self, message, connection):
     log.debug("Got tile block request")
-    x,y = struct.unpack('<ii', message[2:10])
+    x,y = struct.unpack('<ii', message.buf[1:9])
     log.debug("Requesting tile: (" + str(x) + ", " + str(y) + ")")
     flag = True
     if x == -1 or y == -1:
@@ -203,7 +203,7 @@ class MessageHandlerService:
     tileConfirm.appendInt(sectionY + 1)
     connection.socket.send(tileConfirm.create())
     # Now ask for spawn info
-    response = Message(MessageType.Spawn)
+    response = Message(MessageType.SendSpawn)
     connection.socket.send(response.create())
     # Now send item info
     self.__sendItemInfo(connection)
@@ -211,10 +211,15 @@ class MessageHandlerService:
 
   def __processSpawnMessage(self, message, connection):
     log.debug("Processing spawn message")
-    spawnX, spawnY = struct.unpack('<ii', message[2:10])
+    spawnX, spawnY = struct.unpack('<ii', message.buf[1:9])
     connection.player.spawn = (spawnX, spawnY)
-    response = Message(MessageType.SendSpawn)
-    connection.socket.send(response.create())
+    # we have to send spawn data to the other clients and NOT this one...
+    response = Message(MessageType.Spawn)
+    response.appendInt(connection.clientNumber)
+    response.appendInt(spawnX)
+    response.appendInt(spawnY)
+    log.debug("Sending " + connection.player.name + "'s spawn info to other connected clients")
+    #connection.socket.send(response.create())
 
   def __processPlayerHealthUpdateMessage(self, message, connection):
     log.debug("got player health update message")
@@ -248,3 +253,5 @@ class MessageHandlerService:
       self.__processPlayerManaUpdateMessage(message, connection)
     elif message.messageType == MessageType.SendSpawn:
       self.__processSendSpawnMessage(message, connection)
+    else:
+      log.debug("Got unsupported message type: " + str(message.messageType))
