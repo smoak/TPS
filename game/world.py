@@ -31,6 +31,8 @@ class World:
     self.worldSurface = 0.0
     self.items = []
     self.npcs = []
+    self.waterLine = 0
+    self.lavaLine = 0
 
   def getSectionX(self, x):
     return x / 200
