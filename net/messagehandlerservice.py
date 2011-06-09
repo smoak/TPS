@@ -5,6 +5,7 @@ from message import Message, MessageType
 import server
 from game.player import Player
 from util.math import *
+from game.tile import *
 
 
 CONNECTION_REQUEST_FORMAT = '<s' # Little Endian 
@@ -104,7 +105,7 @@ class MessageHandlerService:
       response.appendInt(spawn[0])
       response.appendInt(spawn[1])
     
-      response.appendInt(world.dirtLayer)
+      response.appendInt(world.worldSurface)
       response.appendInt(world.rockLayer)
 
       # NOTE: This is 0 because Terraria saves the world id
@@ -116,15 +117,33 @@ class MessageHandlerService:
     except Exception as ex:
       log.error(ex)
   
+  def __dumpTile(self, pos, tile):
+    log.debug("======Tile Data=====")
+    log.debug("Pos: " + str(pos[0]) + ", " + str(pos[1]))
+    log.debug("Type: " + str(tile.tileType))
+    log.debug("Active: " + str(tile.isActive))
+    log.debug("FrameX: " + str(tile.frameX))
+    log.debug("FrameY: " + str(tile.frameY))
+    log.debug("Wall: " + str(tile.wall))
+    log.debug("Lava: " + str(tile.isLava))
+    log.debug("Lighted: " + str(tile.isLighted))
+    log.debug("Liquid: " + str(tile.liquid))
+    log.debug("Flags: " + str(tile.getFlags()))
+    log.debug("=====    End =======")
+
   def __sendSection(self, coords, connection):
     log.debug("Sending section")
+        
     sectionX = coords[0]
     sectionY = coords[1]
     log.debug("(" + str(sectionX) + ", " + str(sectionY) + ")")
     world = self.server.world
-    if sectionX >= 0 and sectionY >= 0:
+    maxSectionsX = world.width / 200
+    maxSectionsY = world.height / 150
+    if sectionX >= 0 and sectionY >= 0 and sectionX < maxSectionsX and sectionY < maxSectionsY:
       toSectionX = sectionX * 200
-      toSectionY = sectionY * 200
+      toSectionY = sectionY * 150
+      log.debug("toSectionX: " + str(toSectionX) + " toSectionY: " + str(toSectionY))
       for i in range(toSectionY, toSectionY + 150):
         tileSectionMsg = Message(MessageType.TileSection)
         tileSectionMsg.appendInt16(200) 
@@ -133,6 +152,7 @@ class MessageHandlerService:
         for j in range(toSectionX, (200 + toSectionX)):
           tile = world.tiles[j][i]
           tileSectionMsg.appendByte(tile.getFlags())
+          
           if tile.isActive:
             tileSectionMsg.appendByte(tile.tileType)
             # append important stuff
@@ -167,10 +187,11 @@ class MessageHandlerService:
     flag = True
     if x == -1 or y == -1:
       flag = False
-    if x < 10 or x > self.server.world.width - 10:
-      flag = False 
-    if y < 10 or y > self.server.world.height - 10:
-      flag = False
+    else:
+      if x < 10 or x > self.server.world.width - 10:
+        flag = False 
+      elif y < 10 or y > self.server.world.height - 10:
+        flag = False
     num7 = 1350
     if flag:
       num7 = num7 * 2
@@ -253,5 +274,5 @@ class MessageHandlerService:
       self.__processPlayerManaUpdateMessage(message, connection)
     elif message.messageType == MessageType.SendSpawn:
       self.__processSendSpawnMessage(message, connection)
-    else:
-      log.debug("Got unsupported message type: " + str(message.messageType))
+    #else:
+    #  log.debug("Got unsupported message type: " + str(message.messageType))
