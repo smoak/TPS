@@ -56,6 +56,13 @@ class ConnectionManager:
     self.locker.release()
     return result
 
+  def getConnectionList(self):
+    result = []
+    self.locker.acquire()
+    result = self.__connections
+    self.locker.release()
+    return result
+
   def findConnection(self, socket):
     result = None
     self.locker.acquire()
