@@ -117,33 +117,15 @@ class MessageHandlerService:
     except Exception as ex:
       log.error(ex)
   
-  def __dumpTile(self, pos, tile):
-    log.debug("======Tile Data=====")
-    log.debug("Pos: " + str(pos[0]) + ", " + str(pos[1]))
-    log.debug("Type: " + str(tile.tileType))
-    log.debug("Active: " + str(tile.isActive))
-    log.debug("FrameX: " + str(tile.frameX))
-    log.debug("FrameY: " + str(tile.frameY))
-    log.debug("Wall: " + str(tile.wall))
-    log.debug("Lava: " + str(tile.isLava))
-    log.debug("Lighted: " + str(tile.isLighted))
-    log.debug("Liquid: " + str(tile.liquid))
-    log.debug("Flags: " + str(tile.getFlags()))
-    log.debug("=====    End =======")
-
   def __sendSection(self, coords, connection):
-    log.debug("Sending section")
-        
     sectionX = coords[0]
     sectionY = coords[1]
-    log.debug("(" + str(sectionX) + ", " + str(sectionY) + ")")
     world = self.server.world
     maxSectionsX = world.width / 200
     maxSectionsY = world.height / 150
     if sectionX >= 0 and sectionY >= 0 and sectionX < maxSectionsX and sectionY < maxSectionsY:
       toSectionX = sectionX * 200
       toSectionY = sectionY * 150
-      log.debug("toSectionX: " + str(toSectionX) + " toSectionY: " + str(toSectionY))
       for i in range(toSectionY, toSectionY + 150):
         tileSectionMsg = Message(MessageType.TileSection)
         tileSectionMsg.appendInt16(200) 
@@ -201,6 +183,7 @@ class MessageHandlerService:
     connection.socket.send(response.create())
     sectionX = self.server.world.getSectionX(self.server.world.spawn[0])
     sectionY = self.server.world.getSectionY(self.server.world.spawn[1])
+    log.debug("(sectionX, sectionY): (" + str(sectionX) + ", " + str(sectionY) + ")")
     for j in range(sectionX - 2, sectionX + 3):
       for k in range(sectionY - 1, sectionY + 2):
         self.__sendSection((j, k), connection)
@@ -230,17 +213,36 @@ class MessageHandlerService:
     self.__sendItemInfo(connection)
     self.__sendNpcInfo(connection)
 
+  def __greetPlayer(self, connection):
+    message = Message(MessageType.Message)
+    message.appendByte(255)
+    message.appendByte(255)
+    message.appendByte(240)
+    message.appendByte(20)
+    message.appendRaw("TEST MESSAGE!")
+    connection.socket.send(message.create())
+
+  def __syncPlayers(self, connection):
+    pass
+
   def __processSpawnMessage(self, message, connection):
     log.debug("Processing spawn message")
     spawnX, spawnY = struct.unpack('<ii', message.buf[1:9])
     connection.player.spawn = (spawnX, spawnY)
     # we have to send spawn data to the other clients and NOT this one...
-    response = Message(MessageType.Spawn)
-    response.appendInt(connection.clientNumber)
-    response.appendInt(spawnX)
-    response.appendInt(spawnY)
-    log.debug("Sending " + connection.player.name + "'s spawn info to other connected clients")
-    #connection.socket.send(response.create())
+  #  response = Message(MessageType.Spawn)
+  #  response.appendInt(connection.clientNumber)
+  #  response.appendInt(spawnX)
+  #  response.appendInt(spawnY)
+  #  log.debug("Sending " + connection.player.name + "'s spawn info to other connected clients")
+    self.__greetPlayer(connection)
+ #   self.__sendMessageToOtherClients(response, connection)
+
+  def __sendMessageToOtherClients(self, message, clientToIgnore):
+    cons = self.connectionManager.getConnectionList()
+    for c in cons:
+      if c.authed and c.clientNumber != clientToIgnore.clientNumber:
+        c.socket.send(message.create())
 
   def __processPlayerHealthUpdateMessage(self, message, connection):
     log.debug("got player health update message")
@@ -250,6 +252,31 @@ class MessageHandlerService:
 
   def __processSendSpawnMessage(self, message, connection):
     log.debug("got send spawn message")
+
+  def __processPlayerUpdateOneMessage(self, message, connection):
+    log.debug("got player update one message")
+    if not self.__checkClientIdFor(message, connection):
+      return
+    num = struct.unpack('<B', message.buf[1])[0]
+    playerFlags = struct.unpack('<B', message.buf[2])[0]
+    selectedItem = struct.unpack('<B', message.buf[3])[0]
+    posX,posY = struct.unpack('<ff', message.buf[4:12])
+    velX,velY = struct.unpack('<ff', message.buf[12:20])
+    response = Message(MessageType.PlayerUpdateTwo)
+    response.appendByte(num)
+    response.appendByte(playerFlags)
+    response.appendByte(selectedItem)
+    response.appendFloat(posX)
+    response.appendFloat(posY)
+    response.appendFloat(velX)
+    response.appendFloat(velY)
+    self.__sendMessageToOtherClients(response, connection)
+
+  def __processZoneInfoMessage(self, message, connection):
+    pass
+
+  def __processNpcTalkMessage(self, message, connection):
+    pass
 
   def processMessage(self, message, connection):
     if not connection.authed and message.messageType != MessageType.ConnectionRequest and message.messageType != MessageType.PasswordResponse:
@@ -274,5 +301,11 @@ class MessageHandlerService:
       self.__processPlayerManaUpdateMessage(message, connection)
     elif message.messageType == MessageType.SendSpawn:
       self.__processSendSpawnMessage(message, connection)
-    #else:
-    #  log.debug("Got unsupported message type: " + str(message.messageType))
+    elif message.messageType == MessageType.PlayerUpdateOne:
+      self.__processPlayerUpdateOneMessage(message, connection)
+    elif message.messageType == MessageType.ZoneInfo:
+      self.__processZoneInfoMessage(message, connection)
+    elif message.messageType == MessageType.NpcTalk:
+      self.__processNpcTalkMessage(message, connection)
+    else:
+      log.warning("Need to implement message type: " + str(message.messageType))
