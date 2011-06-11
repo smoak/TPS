@@ -160,7 +160,6 @@ class MessageHandlerService:
 
   def __sendNpcInfo(self, connection):
     log.debug("Sending NPC info...")
-    
 
   def __processTileBlockRequestMessage(self, message, connection):
     log.debug("Got tile block request")
@@ -217,26 +216,76 @@ class MessageHandlerService:
     message = Message(MessageType.Message)
     message.appendByte(255)
     message.appendByte(255)
-    message.appendByte(240)
+    message.appendByte(255)
     message.appendByte(20)
     message.appendRaw("TEST MESSAGE!")
     connection.socket.send(message.create())
 
-  def __syncPlayers(self, connection):
+  def __sendPlayerUpdateTwoMessageFor(self, connection):
+    playerUpdateTwoMsg = Message(MessageType.PlayerUpdateTwo)
+    playerUpdateTwoMsg.appendByte(connection.clientNumber)
+    playerUpdateTwoMsg.appendByte(True)
+    self.__sendMessageToOtherClients(playerUpdateTwoMsg, connection)
+	
+  def __sendPlayerUpdateOneMessageFor(self, connection):
+    playerUpdateOneMessage = Message(MessageType.PlayerUpdateOne)
+    playerUpdateOneMessage.appendByte(connection.clientNumber)
+    playerUpdateOneMessage.appendByte(connection.player.playerFlags)
+    playerUpdateOneMessage.appendByte(connection.player.selectedItem)
+    playerUpdateOneMessage.appendFloat(connection.player.posX)
+    playerUpdateOneMessage.appendFloat(connection.player.posY)
+    playerUpdateOneMessage.appendFloat(connection.player.velX)
+    playerUpdateOneMessage.appendFloat(connection.player.velY)
+    self.__sendMessageToOtherClients(playerUpdateOneMessage, connection)
+
+  def __sendPlayerHealthUpdateMessageFor(self, connection):
+    playerHealthUpdateMessage = message(MessageType.PlayerHealthUpdate)
+    playerHealthUpdateMessage.appendByte(connection.clientNumber)
+    playerHealthUpdateMessage.appendInt16(connection.player.statLife)
+    playerHealthUpdateMessage.appendInt16(connection.player.statLifeMax)
+    self.__sendMessageToOtherClients(playerHealthUpdateMessage, connection)
+	
+  def __sendPvpModeMessageFor(self, connection):
     pass
+	
+  def __sendPlayerManaUpdateMessageFor(self, connection):
+    pass
+	
+  def __sendPlayerDataMessageFor(self, connection):
+    pass
+	
+  def __sendInventoryFor(self, connection):
+    pass
+	
+  def __sendPvpTeamMessageFor(self, connection):
+    pass
+	
+  def __syncPlayers(self, connection):
+    cons = self.connectionManager.getConnectionList()
+    for ci in cons:
+      self.__sendPlayerUpdateTwoMessageFor(ci)
+      self.__sendPlayerUpdateOneMessageFor(ci)
+      self.__sendPlayerHealthUpdateMessageFor(ci)
+      self.__sendPvpModeMessageFor(ci)
+      self.__sendPvpTeamMessageFor(ci)
+      self.__sendPlayerManaUpdateMessageFor(ci)
+      self.__sendPlayerDataMessageFor(ci)
+      self.__sendInventoryFor(ci)
 
   def __processSpawnMessage(self, message, connection):
     log.debug("Processing spawn message")
     spawnX, spawnY = struct.unpack('<ii', message.buf[1:9])
     connection.player.spawn = (spawnX, spawnY)
     # we have to send spawn data to the other clients and NOT this one...
-  #  response = Message(MessageType.Spawn)
-  #  response.appendInt(connection.clientNumber)
-  #  response.appendInt(spawnX)
-  #  response.appendInt(spawnY)
+    response = message(MessageType.spawn)
+    response.appendint(connection.clientnumber)
+    response.appendint(spawnx)
+    response.appendint(spawny)
+    self.__sendMessageToOtherClients(response, connection)
   #  log.debug("Sending " + connection.player.name + "'s spawn info to other connected clients")
     self.__greetPlayer(connection)
- #   self.__sendMessageToOtherClients(response, connection)
+    self.__syncPlayers(connection)
+ 
 
   def __sendMessageToOtherClients(self, message, clientToIgnore):
     cons = self.connectionManager.getConnectionList()
@@ -245,7 +294,9 @@ class MessageHandlerService:
         c.socket.send(message.create())
 
   def __processPlayerHealthUpdateMessage(self, message, connection):
-    log.debug("got player health update message")
+    if not self.__checkClientIdFor(message, connection):
+      return
+#    connection.player.statLife = struct.unpack('<
 
   def __processPlayerManaUpdateMessage(self, message, connection):
     log.debug("got player mana update message")
@@ -258,10 +309,10 @@ class MessageHandlerService:
     if not self.__checkClientIdFor(message, connection):
       return
     num = struct.unpack('<B', message.buf[1])[0]
-    playerFlags = struct.unpack('<B', message.buf[2])[0]
-    selectedItem = struct.unpack('<B', message.buf[3])[0]
-    posX,posY = struct.unpack('<ff', message.buf[4:12])
-    velX,velY = struct.unpack('<ff', message.buf[12:20])
+    connection.player.playerFlags = struct.unpack('<B', message.buf[2])[0]
+    connection.player.selectedItem = struct.unpack('<B', message.buf[3])[0]
+    connection.player.posX,connection.player.posY = struct.unpack('<ff', message.buf[4:12])
+    connection.player.velX,connection.player.velY = struct.unpack('<ff', message.buf[12:20])
     response = Message(MessageType.PlayerUpdateTwo)
     response.appendByte(num)
     response.appendByte(playerFlags)
