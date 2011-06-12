@@ -157,7 +157,6 @@ class MessageHandlerService:
 #      itemInfoMsg.appendInt(i)
 #      itemInfoMsg.appendFloat(
 #      itemOwnerInfoMsg = Message(MessageType.ItemOwnerInfo)
-    
 
   def __sendNpcInfo(self, connection):
     log.debug("Sending NPC info...")
@@ -316,7 +315,7 @@ class MessageHandlerService:
     self.__sendMessageToOtherClients(response, connection)
     self.__greetPlayer(connection)
     self.__syncPlayers(connection)
- 
+
   def __sendMessageToOtherClients(self, message, clientToIgnore):
     cons = self.connectionManager.getConnectionList()
     for c in cons:
