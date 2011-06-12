@@ -75,18 +75,19 @@ class MessageHandlerService:
     return clientIdSent == connection.clientNumber
 
   def __processInventoryDataMessage(self, message, connection):
-    log.debug("Got inventory data message")
     if not self.__checkClientIdFor(message, connection):
       return
     # byte 0
     # byte 1 is the slot of the item
     # byte 2 is the stack size
     # rest is item name
-    itemData = struct.unpack('<BB', message.buf[1:3])
+    clientNum = struct.unpack('<B', message.buf[1])[0]
+    itemData = struct.unpack('<BB', message.buf[2:4])
     slot = itemData[0]
     amount = itemData[1]
     itemName = message.buf[3:]
     connection.player.inventory.setSlot(slot, itemName, amount)
+    #self.__sendInventoryFor(connection)
 
   def __processRequestWorldDataMessage(self, message, connection):
     log.debug("Got world data message")
@@ -160,7 +161,6 @@ class MessageHandlerService:
 
   def __sendNpcInfo(self, connection):
     log.debug("Sending NPC info...")
-    
 
   def __processTileBlockRequestMessage(self, message, connection):
     log.debug("Got tile block request")
@@ -217,27 +217,106 @@ class MessageHandlerService:
     message = Message(MessageType.Message)
     message.appendByte(255)
     message.appendByte(255)
-    message.appendByte(240)
+    message.appendByte(255)
     message.appendByte(20)
     message.appendRaw("TEST MESSAGE!")
     connection.socket.send(message.create())
 
+  def __sendPlayerUpdateTwoMessageFor(self, connection):
+    playerUpdateTwoMsg = Message(MessageType.PlayerUpdateTwo)
+    playerUpdateTwoMsg.appendByte(connection.clientNumber)
+    playerUpdateTwoMsg.appendByte(True)
+    self.__sendMessageToOtherClients(playerUpdateTwoMsg, connection)
+	
+  def __sendPlayerUpdateOneMessageFor(self, connection):
+    playerUpdateOneMessage = Message(MessageType.PlayerUpdateOne)
+    playerUpdateOneMessage.appendByte(connection.clientNumber)
+    playerUpdateOneMessage.appendByte(connection.player.playerFlags)
+    playerUpdateOneMessage.appendByte(connection.player.selectedItem)
+    playerUpdateOneMessage.appendFloat(connection.player.posX)
+    playerUpdateOneMessage.appendFloat(connection.player.posY)
+    playerUpdateOneMessage.appendFloat(connection.player.velX)
+    playerUpdateOneMessage.appendFloat(connection.player.velY)
+    self.__sendMessageToOtherClients(playerUpdateOneMessage, connection)
+
+  def __sendPlayerHealthUpdateMessageFor(self, connection):
+    playerHealthUpdateMessage = Message(MessageType.PlayerHealthUpdate)
+    playerHealthUpdateMessage.appendByte(connection.clientNumber)
+    playerHealthUpdateMessage.appendInt16(connection.player.statLife)
+    playerHealthUpdateMessage.appendInt16(connection.player.statLifeMax)
+    self.__sendMessageToOtherClients(playerHealthUpdateMessage, connection)
+	
+  def __sendPvpModeMessageFor(self, connection):
+    pvpModeMessage = Message(MessageType.PvpMode)
+    pvpModeMessage.appendByte(connection.clientNumber)
+    pvpModeMessage.appendByte(False)
+    self.__sendMessageToOtherClients(pvpModeMessage, connection)
+	
+  def __sendPlayerManaUpdateMessageFor(self, connection):
+    manaUpdateMessage = Message(MessageType.PlayerManaUpdate)
+    manaUpdateMessage.appendByte(connection.clientNumber)
+    manaUpdateMessage.appendInt(connection.player.mana)
+    manaUpdateMessage.appendInt(connection.player.manaMax)
+    self.__sendMessageToOtherClients(manaUpdateMessage, connection)
+	
+  def __sendPlayerDataMessageFor(self, connection):
+    playerData = Message(MessageType.PlayerData)
+    playerData.appendByte(connection.clientNumber)
+    playerData.appendByte(connection.player.hairStyle)
+    # FIXME: theres got to be a better way to do this...
+    for i in range(3):
+      playerData.appendByte(connection.player.hairColor[i])
+    for i in range(3):
+      playerData.appendByte(connection.player.skinColor[i])
+    for i in range(3):
+      playerData.appendByte(connection.player.eyeColor[i])
+    for i in range(3):
+      playerData.appendByte(connection.player.shirtColor[i])
+    for i in range(3):
+      playerData.appendByte(connection.player.underShirtColor[i])
+    for i in range(3):
+      playerData.appendByte(connection.player.pantsColor[i])
+    for i in range(3):
+      playerData.appendByte(connection.player.shoeColor[i])
+    playerData.appendRaw(connection.player.name)
+    self.__sendMessageToOtherClients(playerData, connection)
+
+  def __sendInventoryFor(self, connection):
+    # NetMessage.SendData(5, -1, this.whoAmI, string3, num4, (float)num5, 0f, 0f);
+    inventoryDataMessage = Message(MessageType.InventoryData)
+    #inventoryDataMessage.appendByte(
+	
+  def __sendPvpTeamMessageFor(self, connection):
+    pvpTeamMessage = Message(MessageType.PvpTeam)
+    pvpTeamMessage.appendByte(connection.clientNumber)
+    pvpTeamMessage.appendByte(0) # TODO: implement pvp mode
+    self.__sendMessageToOtherClients(pvpTeamMessage, connection)
+	
   def __syncPlayers(self, connection):
-    pass
+    cons = self.connectionManager.getConnectionList()
+    for ci in cons:
+      self.__sendPlayerUpdateTwoMessageFor(ci)
+      self.__sendPlayerUpdateOneMessageFor(ci)
+      self.__sendPlayerHealthUpdateMessageFor(ci)
+      self.__sendPvpModeMessageFor(ci)
+      self.__sendPvpTeamMessageFor(ci)
+      self.__sendPlayerManaUpdateMessageFor(ci)
+      self.__sendPlayerDataMessageFor(ci)
+      self.__sendInventoryFor(ci)
 
   def __processSpawnMessage(self, message, connection):
     log.debug("Processing spawn message")
     spawnX, spawnY = struct.unpack('<ii', message.buf[1:9])
     connection.player.spawn = (spawnX, spawnY)
     # we have to send spawn data to the other clients and NOT this one...
-  #  response = Message(MessageType.Spawn)
-  #  response.appendInt(connection.clientNumber)
-  #  response.appendInt(spawnX)
-  #  response.appendInt(spawnY)
-  #  log.debug("Sending " + connection.player.name + "'s spawn info to other connected clients")
+    response = Message(MessageType.Spawn)
+    response.appendInt(connection.clientNumber)
+    response.appendInt(spawnX)
+    response.appendInt(spawnY)
+    self.__sendMessageToOtherClients(response, connection)
     self.__greetPlayer(connection)
- #   self.__sendMessageToOtherClients(response, connection)
-
+    self.__syncPlayers(connection)
+ 
   def __sendMessageToOtherClients(self, message, clientToIgnore):
     cons = self.connectionManager.getConnectionList()
     for c in cons:
@@ -245,7 +324,12 @@ class MessageHandlerService:
         c.socket.send(message.create())
 
   def __processPlayerHealthUpdateMessage(self, message, connection):
-    log.debug("got player health update message")
+    if not self.__checkClientIdFor(message, connection):
+      return
+    connection.player.statLife, connection.player.statMaxLife = struct.unpack('<hh', message.buf[1:5])
+    if connection.player.statLife <= 0:
+      connection.player.dead = True
+    self.__sendPlayerHealthUpdateMessageFor(connection)
 
   def __processPlayerManaUpdateMessage(self, message, connection):
     log.debug("got player mana update message")
@@ -254,28 +338,30 @@ class MessageHandlerService:
     log.debug("got send spawn message")
 
   def __processPlayerUpdateOneMessage(self, message, connection):
-    log.debug("got player update one message")
     if not self.__checkClientIdFor(message, connection):
       return
     num = struct.unpack('<B', message.buf[1])[0]
-    playerFlags = struct.unpack('<B', message.buf[2])[0]
-    selectedItem = struct.unpack('<B', message.buf[3])[0]
-    posX,posY = struct.unpack('<ff', message.buf[4:12])
-    velX,velY = struct.unpack('<ff', message.buf[12:20])
+    connection.player.playerFlags = struct.unpack('<B', message.buf[2])[0]
+    connection.player.selectedItem = struct.unpack('<B', message.buf[3])[0]
+    connection.player.posX,connection.player.posY = struct.unpack('<ff', message.buf[4:12])
+    connection.player.velX,connection.player.velY = struct.unpack('<ff', message.buf[12:20])
     response = Message(MessageType.PlayerUpdateTwo)
     response.appendByte(num)
-    response.appendByte(playerFlags)
-    response.appendByte(selectedItem)
-    response.appendFloat(posX)
-    response.appendFloat(posY)
-    response.appendFloat(velX)
-    response.appendFloat(velY)
+    response.appendByte(connection.player.playerFlags)
+    response.appendByte(connection.player.selectedItem)
+    response.appendFloat(connection.player.posX)
+    response.appendFloat(connection.player.posY)
+    response.appendFloat(connection.player.velX)
+    response.appendFloat(connection.player.velY)
     self.__sendMessageToOtherClients(response, connection)
 
   def __processZoneInfoMessage(self, message, connection):
     pass
 
   def __processNpcTalkMessage(self, message, connection):
+    pass
+    
+  def __processManipulateTileMessage(self, message, connection):
     pass
 
   def processMessage(self, message, connection):
@@ -307,5 +393,7 @@ class MessageHandlerService:
       self.__processZoneInfoMessage(message, connection)
     elif message.messageType == MessageType.NpcTalk:
       self.__processNpcTalkMessage(message, connection)
+    elif message.messageType == MessageType.ManipulateTile:
+      self.__processManipulateTileMessage(message, connection)
     else:
       log.warning("Need to implement message type: " + str(message.messageType))

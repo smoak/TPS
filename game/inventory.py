@@ -3,8 +3,9 @@ from item import Item
 MAX_INVENTORY_SLOTS = 52
 
 class Inventory:
-  def __init__(self):
+  def __init__(self, player):
     self.items = []
+    self.player = player
     for i in range(MAX_INVENTORY_SLOTS):
       self.items.append(Item("Empty", 1))
 
