@@ -16,15 +16,19 @@ class MessageHandlerService:
   def __init__(self, server):
     self.connectionManager = server.connectionManager
     self.server = server
+    
+  def __sendDisconnect(self, connection, text):
+    message = Message(MessageType.Disconnect)
+    message.appendRaw(text)
+    connection.socket.send(message.create())
 
   def __processConnectionRequest(self, message, connection):
-    log.debug("Got connection request")
     clientVersion = message.buf[1:]
     if clientVersion != server.SERVER_VERSION:
-      log.debug("Unsupported client version. Got: " + str(clientVersion))
+      log.warn("Unsupported client version. Got: " + str(clientVersion))
+      self.__sendDisconnect(connection, "Unsupported client version.")
       self.connectionManager.removeConnection(connection)
       return
-
     response = None
     if self.server.password != None:
       response = Message(MessageType.PasswordRequest)
@@ -39,7 +43,6 @@ class MessageHandlerService:
     return self.__ensureCorrectClientId(clientId, connection)
 
   def __processPlayerDataMessage(self, message, connection):
-    log.debug("got player data message")
     # index 0 is message type...
     if not self.__checkClientIdFor(message, connection):
       return
@@ -85,12 +88,19 @@ class MessageHandlerService:
     itemData = struct.unpack('<BB', message.buf[2:4])
     slot = itemData[0]
     amount = itemData[1]
-    itemName = message.buf[3:]
-    connection.player.inventory.setSlot(slot, itemName, amount)
-    #self.__sendInventoryFor(connection)
+    itemName = message.buf[4:]
+    if slot < 44:
+      # its an inventory item
+      connection.player.inventory.setSlot(slot, itemName, amount)
+    else:
+      # its some type of armor
+      connection.player.armor.setSlot(slot - 44, itemName, amount)
+    
+    if clientNum == 255:
+      # Send the item to other clients because its a server generated item?
+      log.warn("Implement sending item data to other clients when clientNum == 255")
 
   def __processRequestWorldDataMessage(self, message, connection):
-    log.debug("Got world data message")
     world = self.server.world
     response = Message(MessageType.WorldData)
     try:
@@ -150,7 +160,7 @@ class MessageHandlerService:
         connection.socket.send(tileSectionMsg.create())  
 
   def __sendItemInfo(self, connection):
-    log.debug("Sending item info...")
+    log.warn("Need to implement Sending item info...")
 #    for i in range(200):
 #      itemInfoMsg = Message(MessageType.ItemInfo)
 #      item = self.server.world.items[i]
@@ -159,12 +169,10 @@ class MessageHandlerService:
 #      itemOwnerInfoMsg = Message(MessageType.ItemOwnerInfo)
 
   def __sendNpcInfo(self, connection):
-    log.debug("Sending NPC info...")
+    log.warn("Need to implement Sending NPC info...")
 
   def __processTileBlockRequestMessage(self, message, connection):
-    log.debug("Got tile block request")
     x,y = struct.unpack('<ii', message.buf[1:9])
-    log.debug("Requesting tile: (" + str(x) + ", " + str(y) + ")")
     flag = True
     if x == -1 or y == -1:
       flag = False
@@ -182,7 +190,6 @@ class MessageHandlerService:
     connection.socket.send(response.create())
     sectionX = self.server.world.getSectionX(self.server.world.spawn[0])
     sectionY = self.server.world.getSectionY(self.server.world.spawn[1])
-    log.debug("(sectionX, sectionY): (" + str(sectionX) + ", " + str(sectionY) + ")")
     for j in range(sectionX - 2, sectionX + 3):
       for k in range(sectionY - 1, sectionY + 2):
         self.__sendSection((j, k), connection)
@@ -213,12 +220,15 @@ class MessageHandlerService:
     self.__sendNpcInfo(connection)
 
   def __greetPlayer(self, connection):
+    # msgType, remoteClient, ignoreClient, text, number, number2, number3, number4
+    # NetMessage.SendData(25, plr, -1, "Welcome to " + Main.worldName + "!", 255, 255f, 240f, 20f);
     message = Message(MessageType.Message)
-    message.appendByte(255)
-    message.appendByte(255)
-    message.appendByte(255)
-    message.appendByte(20)
-    message.appendRaw("TEST MESSAGE!")
+    message.appendByte(255) # who sent the message? 255 means server sent message
+    message.appendByte(255) # R 
+    message.appendByte(0) # G
+    message.appendByte(0) # B
+    message.appendRaw("Welcome to the jungle! We got fun and games!")
+    log.debug("Sending motd to " + connection.player.name)
     connection.socket.send(message.create())
 
   def __sendPlayerUpdateTwoMessageFor(self, connection):
@@ -281,10 +291,33 @@ class MessageHandlerService:
     self.__sendMessageToOtherClients(playerData, connection)
 
   def __sendInventoryFor(self, connection):
-    # NetMessage.SendData(5, -1, this.whoAmI, string3, num4, (float)num5, 0f, 0f);
-    inventoryDataMessage = Message(MessageType.InventoryData)
-    #inventoryDataMessage.appendByte(
-	
+    # send inventory items
+    i = 0
+    for item in connection.player.inventory.items:   
+      itemMessage = Message(MessageType.InventoryData)
+      itemMessage.appendByte(connection.clientNumber)
+      itemMessage.appendByte(i)
+      itemMessage.appendByte(item.stackSize)
+      itemMessage.appendRaw(item.itemName)
+      self.__sendMessageToOtherClients(itemMessage, connection)
+      i += 1
+      
+    # send armor
+    for armor in connection.player.armor.items:
+      itemMessage = Message(MessageType.InventoryData)
+      itemMessage.appendByte(connection.clientNumber)
+      itemMessage.appendByte(i)
+      itemMessage.appendByte(armor.stackSize)
+      itemMessage.appendRaw(armor.itemName)
+      self.__sendMessageToOtherClients(itemMessage, connection)
+      i += 1
+    
+  def __sendRawMessageToOtherClients(self, message, clientToIgnore):
+    cons = self.connectionManager.getConnectionList()
+    for c in cons:
+      if c.authed and c.clientNumber != clientToIgnore.clientNumber:
+        c.socket.send(message)
+
   def __sendPvpTeamMessageFor(self, connection):
     pvpTeamMessage = Message(MessageType.PvpTeam)
     pvpTeamMessage.appendByte(connection.clientNumber)
@@ -292,6 +325,7 @@ class MessageHandlerService:
     self.__sendMessageToOtherClients(pvpTeamMessage, connection)
 	
   def __syncPlayers(self, connection):
+    log.debug("Syncing players")
     cons = self.connectionManager.getConnectionList()
     for ci in cons:
       self.__sendPlayerUpdateTwoMessageFor(ci)
@@ -304,7 +338,6 @@ class MessageHandlerService:
       self.__sendInventoryFor(ci)
 
   def __processSpawnMessage(self, message, connection):
-    log.debug("Processing spawn message")
     spawnX, spawnY = struct.unpack('<ii', message.buf[1:9])
     connection.player.spawn = (spawnX, spawnY)
     # we have to send spawn data to the other clients and NOT this one...
@@ -331,10 +364,14 @@ class MessageHandlerService:
     self.__sendPlayerHealthUpdateMessageFor(connection)
 
   def __processPlayerManaUpdateMessage(self, message, connection):
-    log.debug("got player mana update message")
+    if not self.__checkClientIdFor(message, connection):
+      return
+    clientNumber = message.buf[1]
+    connection.player.mana, connection.player.manaMax = struct.unpack('<hh', message.buf[1:5])
+    self.__sendPlayerManaUpdateMessageFor(connection)
 
   def __processSendSpawnMessage(self, message, connection):
-    log.debug("got send spawn message")
+    log.warning("need to implement got send spawn message")
 
   def __processPlayerUpdateOneMessage(self, message, connection):
     if not self.__checkClientIdFor(message, connection):
@@ -355,13 +392,22 @@ class MessageHandlerService:
     self.__sendMessageToOtherClients(response, connection)
 
   def __processZoneInfoMessage(self, message, connection):
-    pass
+    log.debug("Got ZoneInfoMessage")
 
   def __processNpcTalkMessage(self, message, connection):
-    pass
+    log.debug("Got NpcTalkMessage")
     
   def __processManipulateTileMessage(self, message, connection):
-    pass
+    log.debug("Got ManipulateTileMessage")
+    num4 = message.buf[1]
+    x, y = struct.unpack('<ii', message.buf[2:10])
+    flag = struct.unpack('<?', message.buf[10])[0]
+    if not flag:
+      if num4 == 0 or num4 == 2:
+        pass
+      elif num4 == 1 or num4 == 3:
+        pass
+    
 
   def processMessage(self, message, connection):
     if not connection.authed and message.messageType != MessageType.ConnectionRequest and message.messageType != MessageType.PasswordResponse:
