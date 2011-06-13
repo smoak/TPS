@@ -1,5 +1,7 @@
 from inventory import Inventory
 
+MAX_ARMOR_SLOTS = 11
+
 class Player:
 
   def __init__(self):
@@ -24,3 +26,4 @@ class Player:
     self.selectedItem = 0
     self.dead = False
     self.playerFlags = 0
+    self.armor = Inventory(self, MAX_ARMOR_SLOTS)

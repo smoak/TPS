@@ -3,14 +3,15 @@ from item import Item
 MAX_INVENTORY_SLOTS = 52
 
 class Inventory:
-  def __init__(self, player):
+  def __init__(self, player, maxSlots=MAX_INVENTORY_SLOTS):
     self.items = []
     self.player = player
-    for i in range(MAX_INVENTORY_SLOTS):
+    self.maxSlots = maxSlots
+    for i in range(maxSlots):
       self.items.append(Item("Empty", 1))
 
   def setSlot(self, slot, itemName, stackSize):
-    if slot < 0 or slot > MAX_INVENTORY_SLOTS:
+    if slot < 0 or slot > self.maxSlots:
       return
     self.items[slot] = Item(itemName, stackSize)
 

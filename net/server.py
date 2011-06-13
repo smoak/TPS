@@ -3,13 +3,14 @@ import thread
 import logging
 import select
 import struct
+import time
 
 from connectioninfo import ConnectionInfo
 from messagehandlerservice import MessageHandlerService
 from message import Message
 
 HEADER_FORMAT = '<i' # little endian integer
-PROTOCOL_VERSION = 4
+PROTOCOL_VERSION = 9
 SERVER_VERSION = "Terraria" + str(PROTOCOL_VERSION)
 MESSAGE_TYPE_FORMAT = '<B' # little endian byte (char)
 
@@ -144,11 +145,23 @@ class TerrariaServer:
       connection = ConnectionInfo(clientsock, clientaddr, self.connectionManager.getNewClientId())
       log.debug("Client id: " + str(connection.clientNumber))
       self.connectionManager.addConnection(connection)
-
+      
+  # TODO: Finish me!    
+  def __worldThread(self):
+    step_size = 3600
+    elapsed = 0
+    now = time.time()
+    while self.networkState == NetworkState.Running:
+      elapsed = now - time.time()
+      now = time.time()
+      if elapsed > 3600:
+        elapsed = 0
+        
   def start(self):
     log.debug("Server starting up...")
     self.__setupSocket()
     # set up a thread to read from the clients sockets
     thread.start_new_thread(self.__readThread, ())
+    #thread.start_new_thread(self.__worldThread, ())
     self.__mainLoop()
      

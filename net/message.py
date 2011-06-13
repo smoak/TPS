@@ -10,26 +10,26 @@ class MessageType:
   WorldData = 0x07
   TileBlockRequest = 0x08
   TileLoading = 0x09
-  TileSection = 0x0A
-  TileConfirmed = 0x0B
-  Spawn = 0x0C
-  PlayerUpdateOne = 0x0D
-  PlayerUpdateTwo = 0x0E
-  PlayerHealthUpdate = 0x0F
-  ManipulateTile = 0x10
-  ItemInfo = 0x15
-  ItemOwnerInfo = 0x16
-  NpcInfo = 0x17
-  Message = 0x19
-  Projectile = 0x1B
-  PvpMode = 0x1E
-  ZoneInfo = 0x24
-  PasswordRequest = 0x25
-  PasswordResponse = 0x26
-  NpcTalk = 0x28
-  PlayerManaUpdate = 0x2A
-  PvpTeam = 0x2D
-  SendSpawn = 0x31
+  TileSection = 0x0A # 10
+  TileConfirmed = 0x0B # 11
+  Spawn = 0x0C # 12
+  PlayerUpdateOne = 0x0D # 13
+  PlayerUpdateTwo = 0x0E # 14
+  PlayerHealthUpdate = 0x10 # 16
+  ManipulateTile = 0x11 # 17
+  ItemInfo = 0x15 # 21
+  ItemOwnerInfo = 0x16 # 22
+  NpcInfo = 0x17 # 23
+  Message = 0x19 # 25
+  Projectile = 0x1B # 27
+  PvpMode = 0x1E # 30
+  ZoneInfo = 0x24 # 36
+  PasswordRequest = 0x25 # 37
+  PasswordResponse = 0x26 # 38
+  NpcTalk = 0x28 # 40
+  PlayerManaUpdate = 0x2A # 42
+  PvpTeam = 0x2D # 45
+  SendSpawn = 0x31 # 49
 
 class Message:
   def __init__(self, messageType):
