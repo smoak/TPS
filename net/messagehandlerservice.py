@@ -6,6 +6,7 @@ import server
 from game.player import Player
 from util.math import *
 from game.tile import *
+from net.messagesender import *
 
 
 CONNECTION_REQUEST_FORMAT = '<s' # Little Endian 
@@ -16,6 +17,7 @@ class MessageHandlerService:
   def __init__(self, server):
     self.connectionManager = server.connectionManager
     self.server = server
+    self.messageSender = MessageSender(self.connectionManager)
     
   def __sendDisconnect(self, connection, text):
     message = Message(MessageType.Disconnect)
@@ -31,8 +33,10 @@ class MessageHandlerService:
       return
     response = None
     if self.server.password != None:
+      connection.state = -1
       response = Message(MessageType.PasswordRequest)
     else:
+      connection.state = 1
       response = Message(MessageType.RequestPlayerData)
       response.appendInt(connection.clientNumber)
     connection.authed = True
@@ -63,7 +67,12 @@ class MessageHandlerService:
 
     # player name is the remaining bytes (starting at index 24)
     connection.player.name = message.buf[24:]
-    log.debug("Player " + connection.player.name + " has connected!")
+    chatText = "Player " + connection.player.name + " has connected!"
+    log.debug(chatText)
+    self.__sendPlayerDataMessageFor(connection)
+#    cons = self.connectionManager.getConnectionList()
+#    cons.remove(connection)
+#    self.messageSender.sendChatMessageFromServer(chatText, (255,0,0), cons)
 
   def __ensureCorrectClientId(self, clientIdRecvd, connection):
     result = True
@@ -95,38 +104,18 @@ class MessageHandlerService:
     else:
       # its some type of armor
       connection.player.armor.setSlot(slot - 44, itemName, amount)
-    
-    if clientNum == 255:
-      # Send the item to other clients because its a server generated item?
-      log.warn("Implement sending item data to other clients when clientNum == 255")
+    response = Message(MessageType.InventoryData)
+    response.appendByte(connection.clientNumber)
+    response.appendByte(slot)
+    response.appendByte(amount)
+    response.appendRaw(itemName)
+    self.messageSender.sendMessageToOtherClients(response, connection)
 
   def __processRequestWorldDataMessage(self, message, connection):
     world = self.server.world
-    response = Message(MessageType.WorldData)
-    try:
-      response.appendInt(world.time)
-      response.appendByte(world.isDay)
-      response.appendByte(world.moonphase)
-      response.appendByte(world.isBloodMoon)
-
-      response.appendInt(world.width) # maxTilesX
-      response.appendInt(world.height) # maxTilesY
-
-      spawn = world.spawn
-      response.appendInt(spawn[0])
-      response.appendInt(spawn[1])
-    
-      response.appendInt(world.worldSurface)
-      response.appendInt(world.rockLayer)
-
-      # NOTE: This is 0 because Terraria saves the world id
-      # incorrectly (e.g. 610775162) so we just send 0...
-      response.appendByte(0) # World Id
-
-      response.appendRaw(world.name)
-      connection.socket.send(response.create())
-    except Exception as ex:
-      log.error(ex)
+    if connection.state == 1:
+      connection.state = 2
+    self.messageSender.sendWorldDataMessageTo(connection, world)
   
   def __sendSection(self, coords, connection):
     sectionX = coords[0]
@@ -184,6 +173,8 @@ class MessageHandlerService:
     num7 = 1350
     if flag:
       num7 = num7 * 2
+    if connection.state == 2:
+      connection.state = 3
     response = Message(MessageType.TileLoading)
     response.appendInt(num7)
     response.appendRaw("Receiving tile data")
@@ -220,8 +211,6 @@ class MessageHandlerService:
     self.__sendNpcInfo(connection)
 
   def __greetPlayer(self, connection):
-    # msgType, remoteClient, ignoreClient, text, number, number2, number3, number4
-    # NetMessage.SendData(25, plr, -1, "Welcome to " + Main.worldName + "!", 255, 255f, 240f, 20f);
     message = Message(MessageType.Message)
     message.appendByte(255) # who sent the message? 255 means server sent message
     message.appendByte(255) # R 
@@ -236,17 +225,6 @@ class MessageHandlerService:
     playerUpdateTwoMsg.appendByte(connection.clientNumber)
     playerUpdateTwoMsg.appendByte(True)
     self.__sendMessageToOtherClients(playerUpdateTwoMsg, connection)
-	
-  def __sendPlayerUpdateOneMessageFor(self, connection):
-    playerUpdateOneMessage = Message(MessageType.PlayerUpdateOne)
-    playerUpdateOneMessage.appendByte(connection.clientNumber)
-    playerUpdateOneMessage.appendByte(connection.player.playerFlags)
-    playerUpdateOneMessage.appendByte(connection.player.selectedItem)
-    playerUpdateOneMessage.appendFloat(connection.player.posX)
-    playerUpdateOneMessage.appendFloat(connection.player.posY)
-    playerUpdateOneMessage.appendFloat(connection.player.velX)
-    playerUpdateOneMessage.appendFloat(connection.player.velY)
-    self.__sendMessageToOtherClients(playerUpdateOneMessage, connection)
 
   def __sendPlayerHealthUpdateMessageFor(self, connection):
     playerHealthUpdateMessage = Message(MessageType.PlayerHealthUpdate)
@@ -323,31 +301,24 @@ class MessageHandlerService:
     pvpTeamMessage.appendByte(connection.clientNumber)
     pvpTeamMessage.appendByte(0) # TODO: implement pvp mode
     self.__sendMessageToOtherClients(pvpTeamMessage, connection)
-	
-  def __syncPlayers(self, connection):
-    log.debug("Syncing players")
-    cons = self.connectionManager.getConnectionList()
-    for ci in cons:
-      self.__sendPlayerUpdateTwoMessageFor(ci)
-      self.__sendPlayerUpdateOneMessageFor(ci)
-      self.__sendPlayerHealthUpdateMessageFor(ci)
-      self.__sendPvpModeMessageFor(ci)
-      self.__sendPvpTeamMessageFor(ci)
-      self.__sendPlayerManaUpdateMessageFor(ci)
-      self.__sendPlayerDataMessageFor(ci)
-      self.__sendInventoryFor(ci)
 
   def __processSpawnMessage(self, message, connection):
-    spawnX, spawnY = struct.unpack('<ii', message.buf[1:9])
+    clientNumber = struct.unpack('<B', message.buf[1])[0]
+    spawnX, spawnY = struct.unpack('<ii', message.buf[2:10])
     connection.player.spawn = (spawnX, spawnY)
-    # we have to send spawn data to the other clients and NOT this one...
+    connection.player.active = True
+    log.debug("Got spawn for " + connection.player.name + " " + str(spawnX) + ", " + str(spawnY))
+#    if connection.state >= 3:
+      # we have to send spawn data to the other clients and NOT this one...
     response = Message(MessageType.Spawn)
-    response.appendInt(connection.clientNumber)
+    response.appendByte(clientNumber)
     response.appendInt(spawnX)
     response.appendInt(spawnY)
     self.__sendMessageToOtherClients(response, connection)
+ #     if connection.state == 3:
+  #      connection.state = 10
     self.__greetPlayer(connection)
-    self.__syncPlayers(connection)
+    self.messageSender.syncPlayers()
 
   def __sendMessageToOtherClients(self, message, clientToIgnore):
     cons = self.connectionManager.getConnectionList()
@@ -358,7 +329,8 @@ class MessageHandlerService:
   def __processPlayerHealthUpdateMessage(self, message, connection):
     if not self.__checkClientIdFor(message, connection):
       return
-    connection.player.statLife, connection.player.statMaxLife = struct.unpack('<hh', message.buf[1:5])
+    clientNumber = struct.unpack('<B', message.buf[1])[0]
+    connection.player.statLife, connection.player.statLifeMax = struct.unpack('<hh', message.buf[2:6])
     if connection.player.statLife <= 0:
       connection.player.dead = True
     self.__sendPlayerHealthUpdateMessageFor(connection)
@@ -367,11 +339,12 @@ class MessageHandlerService:
     if not self.__checkClientIdFor(message, connection):
       return
     clientNumber = message.buf[1]
-    connection.player.mana, connection.player.manaMax = struct.unpack('<hh', message.buf[1:5])
+    connection.player.mana, connection.player.manaMax = struct.unpack('<hh', message.buf[2:6])
     self.__sendPlayerManaUpdateMessageFor(connection)
 
   def __processSendSpawnMessage(self, message, connection):
-    log.warning("need to implement got send spawn message")
+#    log.warning("need to implement got send spawn message")
+    pass
 
   def __processPlayerUpdateOneMessage(self, message, connection):
     if not self.__checkClientIdFor(message, connection):
@@ -381,7 +354,7 @@ class MessageHandlerService:
     connection.player.selectedItem = struct.unpack('<B', message.buf[3])[0]
     connection.player.posX,connection.player.posY = struct.unpack('<ff', message.buf[4:12])
     connection.player.velX,connection.player.velY = struct.unpack('<ff', message.buf[12:20])
-    response = Message(MessageType.PlayerUpdateTwo)
+    response = Message(MessageType.PlayerUpdateOne)
     response.appendByte(num)
     response.appendByte(connection.player.playerFlags)
     response.appendByte(connection.player.selectedItem)
@@ -392,7 +365,11 @@ class MessageHandlerService:
     self.__sendMessageToOtherClients(response, connection)
 
   def __processZoneInfoMessage(self, message, connection):
-    log.debug("Got ZoneInfoMessage")
+    #log.debug("Got ZoneInfoMessage")
+    #log.debug(str(len(message.buf[2:])))
+    clientNumber = struct.unpack('<B', message.buf[1])[0]
+#    zoneEvil,zoneMeteor,zoneDungeon,zoneJungle = struct.unpack('<????', message.buf[2:6])
+    # not sure what we do with those ^ yet...
 
   def __processNpcTalkMessage(self, message, connection):
     log.debug("Got NpcTalkMessage")
@@ -407,7 +384,9 @@ class MessageHandlerService:
         pass
       elif num4 == 1 or num4 == 3:
         pass
-    
+    if num4 == 0:
+#      self.world.killTile((x,y), 
+      pass
 
   def processMessage(self, message, connection):
     if not connection.authed and message.messageType != MessageType.ConnectionRequest and message.messageType != MessageType.PasswordResponse:
@@ -440,5 +419,7 @@ class MessageHandlerService:
       self.__processNpcTalkMessage(message, connection)
     elif message.messageType == MessageType.ManipulateTile:
       self.__processManipulateTileMessage(message, connection)
+    elif message.messageType == MessageType.Unknown15:
+      self.messageSender.syncPlayers()
     else:
       log.warning("Need to implement message type: " + str(message.messageType))

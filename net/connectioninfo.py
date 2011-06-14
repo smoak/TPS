@@ -1,6 +1,6 @@
 class ConnectionInfo(object):
 
-  __slots__ = ["socket", "address", "clientNumber", "data", "authed", "player"]
+  __slots__ = ["socket", "address", "clientNumber", "data", "authed", "player", "state"]
 
   def __init__(self, socket, address, clientNumber):
     self.socket = socket
@@ -9,3 +9,4 @@ class ConnectionInfo(object):
     self.data = ""
     self.authed = False
     self.player = None
+    self.state = 0

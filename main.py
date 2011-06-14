@@ -8,13 +8,14 @@ from util.tileutil import *
 
 def debug_world():
   w = World()
+  w.time = 13500
   w.name = "Debug"
   w.width = 800
   w.height = 600
-  w.spawn = (30,199)
+  w.spawn = (100,199)
   air = Tile()
   air.isActive = False
-  air.isLighted = False
+  air.isLighted = True
   air.tileType = 0
   air.frameX = 0
   air.frameY = 0
