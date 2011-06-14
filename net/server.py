@@ -5,9 +5,12 @@ import select
 import struct
 import time
 
+
 from connectioninfo import ConnectionInfo
 from messagehandlerservice import MessageHandlerService
 from message import Message
+from messagesender import *
+from util.tasks import PeriodicExecutor
 
 HEADER_FORMAT = '<i' # little endian integer
 PROTOCOL_VERSION = 9
@@ -97,6 +100,8 @@ class TerrariaServer:
     self.networkState = NetworkState.Closed
     self.connectionManager = ConnectionManager(self.world)
     self.messageHandlerService = MessageHandlerService(self)
+    self.messageSender = MessageSender(self.connectionManager)
+    self.updateServerTask = PeriodicExecutor(60, self.__updateServer, ())
 
   def __setupSocket(self):
     try:
@@ -145,23 +150,15 @@ class TerrariaServer:
       connection = ConnectionInfo(clientsock, clientaddr, self.connectionManager.getNewClientId())
       log.debug("Client id: " + str(connection.clientNumber))
       self.connectionManager.addConnection(connection)
-      
-  # TODO: Finish me!    
-  def __worldThread(self):
-    step_size = 3600
-    elapsed = 0
-    now = time.time()
-    while self.networkState == NetworkState.Running:
-      elapsed = now - time.time()
-      now = time.time()
-      if elapsed > 3600:
-        elapsed = 0
+
+  def __updateServer(self):
+    self.messageSender.sendWorldUpdateToAllClients(self.world)
+    self.messageSender.syncPlayers()
         
   def start(self):
     log.debug("Server starting up...")
     self.__setupSocket()
     # set up a thread to read from the clients sockets
     thread.start_new_thread(self.__readThread, ())
-    #thread.start_new_thread(self.__worldThread, ())
+    thread.start_new_thread(self.updateServerTask.run, ())
     self.__mainLoop()
-     

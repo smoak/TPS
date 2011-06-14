@@ -27,3 +27,4 @@ class Player:
     self.dead = False
     self.playerFlags = 0
     self.armor = Inventory(self, MAX_ARMOR_SLOTS)
+    self.active = False

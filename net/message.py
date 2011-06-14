@@ -15,6 +15,7 @@ class MessageType:
   Spawn = 0x0C # 12
   PlayerUpdateOne = 0x0D # 13
   PlayerUpdateTwo = 0x0E # 14
+  Unknown15 = 0x0F # 15
   PlayerHealthUpdate = 0x10 # 16
   ManipulateTile = 0x11 # 17
   ItemInfo = 0x15 # 21
