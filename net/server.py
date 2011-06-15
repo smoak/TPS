@@ -152,7 +152,7 @@ class TerrariaServer:
       self.connectionManager.addConnection(connection)
 
   def __updateServer(self):
-    self.world.update(3601)
+    #self.world.update(3601)
     self.messageSender.sendWorldUpdateToAllClients(self.world)
     self.messageSender.syncPlayers()
         

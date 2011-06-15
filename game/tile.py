@@ -1,3 +1,5 @@
+import copy
+
 class TileType:
   Dirt = 0
   Stone = 1
@@ -25,6 +27,9 @@ class Tile(object):
     self.isLighted = False
     self.liquid = 0
 
+  def copy(self):
+    return copy.copy(self) 
+
   def getFlags(self):
     flag = 0
     if self.isActive:
@@ -37,9 +42,8 @@ class Tile(object):
       flag = flag | TileFlags.Liquid
     return flag
 
-  @classmethod
-  def isImportant(cls, tileType):
-    return tileType in IMPORTANT_TILES
+  def isImportant(self):
+    return self.tileType in IMPORTANT_TILES
 
 class AirTile(Tile):
   def __init__(self):

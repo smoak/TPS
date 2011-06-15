@@ -70,9 +70,9 @@ class MessageHandlerService:
     chatText = "Player " + connection.player.name + " has connected!"
     log.debug(chatText)
     self.__sendPlayerDataMessageFor(connection)
-#    cons = self.connectionManager.getConnectionList()
+    cons = self.connectionManager.getConnectionList()
 #    cons.remove(connection)
-#    self.messageSender.sendChatMessageFromServer(chatText, (255,0,0), cons)
+    self.messageSender.sendChatMessageFromServer(chatText, (255,0,0), cons)
 
   def __ensureCorrectClientId(self, clientIdRecvd, connection):
     result = True
@@ -138,7 +138,7 @@ class MessageHandlerService:
           if tile.isActive:
             tileSectionMsg.appendByte(tile.tileType)
             # append important stuff
-            if Tile.isImportant(tile.tileType):
+            if tile.isImportant():
               tileSectionMsg.appendInt16(tile.frameX)
               tileSectionMsg.appendInt16(tile.frameY)
           if tile.wall > 0:
@@ -375,7 +375,6 @@ class MessageHandlerService:
     log.debug("Got NpcTalkMessage")
     
   def __processManipulateTileMessage(self, message, connection):
-    log.debug("Got ManipulateTileMessage")
     tileType = struct.unpack('<B', message.buf[1])[0]
     x, y = struct.unpack('<ii', message.buf[2:10])
     flag = struct.unpack('<?', message.buf[10])[0]
@@ -397,13 +396,67 @@ class MessageHandlerService:
     clientNumber = struct.unpack('<B', message.buf[1])[0]
     r,g,b = struct.unpack('<BBB', message.buf[2:5])
     text = message.buf[5:]
-    response = Message(MessageType.Message)
-    response.appendByte(clientNumber)
-    response.appendByte(r)
-    response.appendByte(g)
-    response.appendByte(b)
-    response.appendRaw(text)
-    self.messageSender.sendMessageToAllClients(response) 
+    if text.startswith("/item "):
+      itemMsg = Message(MessageType.ItemInfo)
+      itemMsg.appendInt16(1)
+      itemMsg.appendFloat(connection.player.posX + 5)
+      itemMsg.appendFloat(connection.player.posY)
+      itemMsg.appendFloat(0.19)
+      itemMsg.appendFloat(-1.8)
+      itemMsg.appendByte(1)
+      itemName = text.replace("/item ", "")
+      itemMsg.appendRaw(itemName)
+      log.debug("Sending item: " + itemName + " to " + connection.player.name)
+      connection.socket.send(itemMsg.create())
+    else:
+      response = Message(MessageType.Message)
+      response.appendByte(clientNumber)
+      response.appendByte(r)
+      response.appendByte(g)
+      response.appendByte(b)
+      response.appendRaw(text)
+      self.messageSender.sendMessageToAllClients(response) 
+
+  def __processItemInfoMessage(self, message, connection):
+    itemNum = struct.unpack('<h', message.buf[1:3])[0]
+    posX, posY,velX,velY = struct.unpack('<ffff', message.buf[3:19])
+    stack2 = struct.unpack('<B', message.buf[19])[0]
+    itemName = message.buf[20:]
+    if itemName == "0":
+      if itemNum < 200:
+        message = self.__buildItemInfoMessage(itemNum, posX, posY, velX, velY, stack2, itemName)
+        self.messageSender.sendMessageToAllClients(message)
+    else:
+      flag = (itemNum == 200)
+      if flag:
+        itemNum = 1 # need to find first available item number
+        message = self.__buildItemInfoMessage(itemNum, posX, posY, velX, velY, stack2, itemName)
+        self.messageSender.sendMessageToAllClients(message)
+      else:
+        self.messageSender.sendMessageToOtherClients(message, connection)
+
+  def __buildItemInfoMessage(self, itemNum, posX, posY, velX, velY, stack2, itemName):
+    message = Message(MessageType.ItemInfo)
+    message.appendInt16(itemNum)
+    message.appendFloat(posX)
+    message.appendFloat(posY)
+    message.appendFloat(velX)
+    message.appendFloat(velY)
+    message.appendByte(stack2)
+    message.appendRaw(itemName)
+    return message
+    
+    
+
+  def __processItemOwnerInfoMessage(self, message, connection):
+    itemNumber = struct.unpack('<h', message.buf[1:3])[0]
+    owner = struct.unpack('<B', message.buf[3])[0]
+    owner = 255
+    keepTime = 15
+    response = Message(MessageType.ItemOwnerInfo)
+    response.appendInt16(itemNumber)
+    response.appendByte(owner)
+    self.messageSender.sendMessageToAllClients(response)
 
   def processMessage(self, message, connection):
     if not connection.authed and message.messageType != MessageType.ConnectionRequest and message.messageType != MessageType.PasswordResponse:
@@ -440,5 +493,9 @@ class MessageHandlerService:
       self.messageSender.syncPlayers()
     elif message.messageType == MessageType.Message:
       self.__processMessageMessage(message, connection)
+    elif message.messageType == MessageType.ItemInfo:
+      self.__processItemInfoMessage(message, connection)
+    elif message.messageType == MessageType.ItemOwnerInfo:
+      self.__processItemOwnerInfoMessage(message, connection)
     else:
       log.warning("Need to implement message type: " + str(message.messageType))
