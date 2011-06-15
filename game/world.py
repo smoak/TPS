@@ -56,7 +56,7 @@ class World:
           return
     if not effectOnly:
       tile = self.tiles[x][y]
-      if tile.tileType == 3:
+      if tile.tileType in ([3,24]):
         if tile.frameX == 144:
           newItemX = x * 16
           newItemY = y * 16
@@ -64,9 +64,46 @@ class World:
           newItemHeight = 16
           newItemType = 5
           newItemStack = 1
-    self.tiles[x][y] = AIR_TILE
-    # TODO: Finish this!
-  
+      if fail:
+        if tile.tileType in ([2,23]):
+          self.tiles[x][y] = tile.copy()
+          self.tiles[x][y].tileType = 0
+        if tile.tileType == 60:
+          self.tiles[x][y] = tile.copy()
+          self.tiles[x][y].tileType = 59
+        self.squareTileFrame(coord, True)
+      else:
+        if tile.tileType == 21:
+          cx = x - tile.frameX / 18
+          cy = y - tile.frameY / 18
+          if not self.destroyChest(cx, cy):
+            return
+        if not noItem:
+          num3 = 0
+          if tile.tileType in ([0, 2]):
+            num3 = 2
+        self.tiles[x][y] = tile.copy()
+        self.tiles[x][y].isActive = False
+        self.tiles[x][y].frameX = -1
+        self.tiles[x][y].frameY = -1
+        self.tiles[x][y].tileType = 0
+        self.squareTileFrame(coord, True)
+
+  def squareTileFrame(self, coord, resetFrame = True):
+    self.tileFrame(coord[0] - 1, coord[1] - 1, False, False)
+
+  def tileFrame(self, x, y, resetFrame = False, noBreak = False):
+    if x >= 0 and y >= 0 and x < self.width and y < self.height:
+      tile = self.tiles[x][y]
+      if tile.liquid > 0:
+        self.addWater(x, y)
+      if tile.isActive:
+        if not noBreak or not tile.isImportant():
+          num = -1
+
+  def destroyChest(self, x, y):
+    return True
+
   def update(self, elapsedMs):
     self.time += elapsedMs
     if not self.isDay:

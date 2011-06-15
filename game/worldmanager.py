@@ -103,7 +103,7 @@ class WorldManager:
         world.tiles[x][y].isActive = struct.unpack('<?', f.read(1))[0]
         if world.tiles[x][y].isActive:
           world.tiles[x][y].tileType = struct.unpack('<B', f.read(1))[0]
-          if Tile.isImportant(world.tiles[x][y].tileType):
+          if world.tiles[x][y].isImportant():
             world.tiles[x][y].frameX = struct.unpack('<h', f.read(2))[0]
             world.tiles[x][y].frameY = struct.unpack('<h', f.read(2))[0]
         world.tiles[x][y].isLighted = struct.unpack('<?', f.read(1))[0]
