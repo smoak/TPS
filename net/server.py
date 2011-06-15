@@ -3,7 +3,7 @@ import thread
 import logging
 import select
 import struct
-import time
+import time, random
 
 
 from connectioninfo import ConnectionInfo
@@ -152,6 +152,7 @@ class TerrariaServer:
       self.connectionManager.addConnection(connection)
 
   def __updateServer(self):
+    self.world.update(3601)
     self.messageSender.sendWorldUpdateToAllClients(self.world)
     self.messageSender.syncPlayers()
         
