@@ -376,17 +376,34 @@ class MessageHandlerService:
     
   def __processManipulateTileMessage(self, message, connection):
     log.debug("Got ManipulateTileMessage")
-    num4 = message.buf[1]
+    tileType = struct.unpack('<B', message.buf[1])[0]
     x, y = struct.unpack('<ii', message.buf[2:10])
     flag = struct.unpack('<?', message.buf[10])[0]
     if not flag:
-      if num4 == 0 or num4 == 2:
+      if tileType == 0 or tileType == 2:
         pass
-      elif num4 == 1 or num4 == 3:
+      elif tileType == 1 or tileType == 3:
         pass
-    if num4 == 0:
-#      self.world.killTile((x,y), 
-      pass
+    if tileType == 0:
+      self.server.world.killTile((x,y), flag, False, False)
+    response = Message(MessageType.ManipulateTile)
+    response.appendByte(tileType)
+    response.appendInt(x)
+    response.appendInt(y)
+    response.appendByte(flag)
+    self.messageSender.sendMessageToOtherClients(response, connection)
+
+  def __processMessageMessage(self, message, connection):
+    clientNumber = struct.unpack('<B', message.buf[1])[0]
+    r,g,b = struct.unpack('<BBB', message.buf[2:5])
+    text = message.buf[5:]
+    response = Message(MessageType.Message)
+    response.appendByte(clientNumber)
+    response.appendByte(r)
+    response.appendByte(g)
+    response.appendByte(b)
+    response.appendRaw(text)
+    self.messageSender.sendMessageToAllClients(response) 
 
   def processMessage(self, message, connection):
     if not connection.authed and message.messageType != MessageType.ConnectionRequest and message.messageType != MessageType.PasswordResponse:
@@ -421,5 +438,7 @@ class MessageHandlerService:
       self.__processManipulateTileMessage(message, connection)
     elif message.messageType == MessageType.Unknown15:
       self.messageSender.syncPlayers()
+    elif message.messageType == MessageType.Message:
+      self.__processMessageMessage(message, connection)
     else:
       log.warning("Need to implement message type: " + str(message.messageType))
