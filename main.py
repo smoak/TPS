@@ -13,16 +13,20 @@ def debug_world():
   w.width = 800
   w.height = 600
   w.spawn = (100,199)
+  w.isDay = True
   air = AirTile()
   dirt = DirtTile()
   stone = StoneTile()
+  # copper = tileType 7
+  # gold tileType 8
+  # silver tileType 9
   
   w.tiles = [[air for y in range(w.height)] for x in range(w.width)]
   for x in range(80, w.width):
     for y in range(200, w.height):
       if x > 100:
         w.tiles[x][y] = Tile()
-        w.tiles[x][y].tileType = 7
+        w.tiles[x][y].tileType = 9
         w.tiles[x][y].isActive = True
         w.tiles[x][y].isLighted = True
         w.tiles[x][y].frameX = -1
@@ -30,7 +34,9 @@ def debug_world():
       else:
         w.tiles[x][y] = stone
 #      w.tiles[x][y] = dirt
-       
+  t = w.tiles[100][199].copy()
+  t.isActive = False
+  w.tiles[100][199] = t     
   
   w.worldSurface = 200
   w.rockLayer = 400

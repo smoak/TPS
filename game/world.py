@@ -127,6 +127,11 @@ class World:
   def destroyChest(self, x, y):
     return True
 
+  def placeTile(self, x, y, tileType, mute = False, forced = False, plr = -1):
+    if x < 0 or y < 0 or x > self.width or y > self.height:
+      return
+    pass
+
   def update(self, elapsedMs):
     self.time += elapsedMs
     if not self.isDay:
