@@ -13,6 +13,8 @@ class TileFlags:
   Liquid = 8
 
 IMPORTANT_TILES = [3, 5, 10, 11, 12, 13, 14, 15, 16, 17, 18, 20, 21, 24, 26, 27, 28, 29, 31, 33, 34, 35, 36, 42, 50, 55, 61, 71, 72, 73, 74, 77, 78, 79]
+STONE_TILES = [63, 64, 65, 66, 67, 68]
+SOLID_TILES = [0, 1, 2, 6, 7, 8, 9, 10, 19, 22, 23, 25, 30, 37, 38, 39, 40, 41, 43, 44, 45, 46, 47, 48, 53, 54, 56, 57, 58, 59, 60, 63, 64, 65, 66, 67, 68, 70, 75, 76]
 
 
 class Tile(object):
@@ -44,6 +46,12 @@ class Tile(object):
 
   def isImportant(self):
     return self.tileType in IMPORTANT_TILES
+
+  def isTileStone(self):
+    return self.tileType in STONE_TILES
+
+  def isTileSolid(self):
+    return self.tileType in SOLID_TILES
 
 class AirTile(Tile):
   def __init__(self):

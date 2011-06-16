@@ -25,12 +25,18 @@ class MessageSender(object):
       if c.authed:
         c.socket.send(message.create())
 
+  def sendPlayerDisconnectedToOtherClients(self, connection):
+    self.__sendPlayerUpdateTwoMessageFor(connection)
+    cons = self.connectionManager.getConnectionList()
+    self.sendChatMessageFromServer(connection.player.name + " has disconnected!", (255, 255, 255), cons)
+
   def sendChatMessageFromServer(self, text, color, clients):
     message = Message(MessageType.Message)
     message.appendByte(255) # server sent message
     message.appendByte(color[0]) # Red
     message.appendByte(color[1]) # Green
     message.appendByte(color[2]) # Blue
+    message.appendRaw(text)
     for ci in clients:
       if ci.authed:
         ci.socket.send(message.create())
