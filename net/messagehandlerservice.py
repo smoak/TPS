@@ -70,9 +70,9 @@ class MessageHandlerService:
     chatText = "Player " + connection.player.name + " has connected!"
     log.debug(chatText)
     self.__sendPlayerDataMessageFor(connection)
-    cons = self.connectionManager.getConnectionList()
+#    cons = self.connectionManager.getConnectionList()
 #    cons.remove(connection)
-    self.messageSender.sendChatMessageFromServer(chatText, (255,0,0), cons)
+#    self.messageSender.sendChatMessageFromServer(chatText, (255,0,0), cons)
 
   def __ensureCorrectClientId(self, clientIdRecvd, connection):
     result = True
@@ -397,17 +397,11 @@ class MessageHandlerService:
     r,g,b = struct.unpack('<BBB', message.buf[2:5])
     text = message.buf[5:]
     if text.startswith("/item "):
-      itemMsg = Message(MessageType.ItemInfo)
-      itemMsg.appendInt16(1)
-      itemMsg.appendFloat(connection.player.posX + 5)
-      itemMsg.appendFloat(connection.player.posY)
-      itemMsg.appendFloat(0.19)
-      itemMsg.appendFloat(-1.8)
-      itemMsg.appendByte(1)
       itemName = text.replace("/item ", "")
-      itemMsg.appendRaw(itemName)
+      itemMsg = self.__buildItemInfoMessage(len(self.server.world.items) + 1, connection.player.posX + 5, connection.player.posY, 0.19, -1.8, 1, itemName)
+      self.server.world.items.append(itemName)
       log.debug("Sending item: " + itemName + " to " + connection.player.name)
-      connection.socket.send(itemMsg.create())
+      self.messageSender.sendMessageToAllClients(itemMsg)
     else:
       response = Message(MessageType.Message)
       response.appendByte(clientNumber)
@@ -445,14 +439,11 @@ class MessageHandlerService:
     message.appendByte(stack2)
     message.appendRaw(itemName)
     return message
-    
-    
 
   def __processItemOwnerInfoMessage(self, message, connection):
     itemNumber = struct.unpack('<h', message.buf[1:3])[0]
     owner = struct.unpack('<B', message.buf[3])[0]
-    owner = 255
-    keepTime = 15
+#    owner = 255
     response = Message(MessageType.ItemOwnerInfo)
     response.appendInt16(itemNumber)
     response.appendByte(owner)

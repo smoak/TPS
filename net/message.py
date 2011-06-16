@@ -21,8 +21,10 @@ class MessageType:
   ItemInfo = 0x15 # 21
   ItemOwnerInfo = 0x16 # 22
   NpcInfo = 0x17 # 23
+  Unknown24 = 0x18 # 24
   Message = 0x19 # 25
   Projectile = 0x1B # 27
+  Unknown28 = 0x1C # 28
   PvpMode = 0x1E # 30
   ZoneInfo = 0x24 # 36
   PasswordRequest = 0x25 # 37

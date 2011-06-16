@@ -46,11 +46,17 @@ class ConnectionManager:
     self.locker.release()
 
   def removeConnection(self, connection):
+    self.locker.acquire()
+#    self.__connections.remove(connection)
+    newCons = []
+    for ci in self.__connections:
+      if ci.socket != connection.socket:
+        newCons.append(ci)
+    self.__connections = newCons
     connection.socket.shutdown(socket.SHUT_RDWR)
     connection.socket.close()
-    self.locker.acquire()
-    self.__connections.remove(connection)
     self.locker.release()
+    connection.player.active = False
 
   def getListOfSocketsForSelect(self):
     result = []
@@ -120,6 +126,7 @@ class TerrariaServer:
       if len(header) < 4:
         log.debug("Got invalid header...disconnecting client ")
         self.connectionManager.removeConnection(connection)
+        self.messageSender.sendPlayerDisconnectedToOtherClients(connection)
         return
       msgLen = struct.unpack(HEADER_FORMAT, header)[0] # unpack returns a tuple 
       connection.data = connection.socket.recv(msgLen)
@@ -152,7 +159,7 @@ class TerrariaServer:
       self.connectionManager.addConnection(connection)
 
   def __updateServer(self):
-    #self.world.update(3601)
+    self.world.update(3601)
     self.messageSender.sendWorldUpdateToAllClients(self.world)
     self.messageSender.syncPlayers()
         

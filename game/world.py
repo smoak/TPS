@@ -62,8 +62,9 @@ class World:
           newItemY = y * 16
           newItemWidth = 16
           newItemHeight = 16
-          newItemType = 5
+          newItemType = 5 # 60 for tileType == 24
           newItemStack = 1
+#          newItemPosX = newItemX + newItemWidth / 2 -
       if fail:
         if tile.tileType in ([2,23]):
           self.tiles[x][y] = tile.copy()
@@ -79,9 +80,7 @@ class World:
           if not self.destroyChest(cx, cy):
             return
         if not noItem:
-          num3 = 0
-          if tile.tileType in ([0, 2]):
-            num3 = 2
+          pass # TODO: Create a new item
         self.tiles[x][y] = tile.copy()
         self.tiles[x][y].isActive = False
         self.tiles[x][y].frameX = -1
@@ -90,7 +89,16 @@ class World:
         self.squareTileFrame(coord, True)
 
   def squareTileFrame(self, coord, resetFrame = True):
-    self.tileFrame(coord[0] - 1, coord[1] - 1, False, False)
+    x, y = coord[0], coord[1]
+    self.tileFrame(x - 1, y - 1, False, False)
+    self.tileFrame(x - 1, y, False, False)
+    self.tileFrame(x - 1, y + 1, False, False)
+    self.tileFrame(x, y - 1, False, False)
+    self.tileFrame(x, y, resetFrame, False)
+    self.tileFrame(x, y + 1, False, False)
+    self.tileFrame(x + 1, y - 1, False, False)
+    self.tileFrame(x + 1, y, False, False)
+    self.tileFrame(x + 1, y + 1, False, False)
 
   def tileFrame(self, x, y, resetFrame = False, noBreak = False):
     if x >= 0 and y >= 0 and x < self.width and y < self.height:
@@ -100,6 +108,21 @@ class World:
       if tile.isActive:
         if not noBreak or not tile.isImportant():
           num = -1
+          newTileType = tile.tileType
+          if tile.isTileStone():
+            newTileType = 1
+          frameX = tile.frameX
+          frameY = tile.frameY
+          if newTileType in [3, 24, 61, 71, 73, 74]:
+            self.plantCheck(x, y)
+          else:
+            pass
+
+  def plantCheck(self, x, y):
+    pass
+
+  def addWater(self, x, y):
+    pass
 
   def destroyChest(self, x, y):
     return True

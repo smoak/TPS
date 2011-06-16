@@ -2,6 +2,22 @@ from net.message import *
 
 class MessageBuilder(object):
 
+  def buildNpcInfoMessageFor(self, npc):
+    message = Message(MessageType.NpcInfo)
+    message.appendInt16(0)
+    message.appendFloat(npc.posX)
+    message.appendFloat(npc.posY)
+    message.appendFloat(npc.velX)
+    message.appendFloat(npc.velY)
+    message.appendInt16(npc.target)
+    message.appendByte(npc.directionX + 1)
+    message.appendByte(npc.directionY + 1)
+    message.appendInt16(npc.life)
+    for ai in npc.ai:
+      message.appendFloat(ai)
+    message.appendRaw(npc.name)
+    return message
+
   def buildWorldDataMessage(self, world):
     message = Message(MessageType.WorldData)
     message.appendInt(world.time)
