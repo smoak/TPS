@@ -4,6 +4,9 @@ class TileType:
   Dirt = 0
   Stone = 1
   Grass = 2
+  Copper = 7
+  Gold = 8
+  Silver = 9 
     
 
 class TileFlags:
