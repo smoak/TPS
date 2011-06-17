@@ -47,12 +47,12 @@ class ConnectionManager:
 
   def removeConnection(self, connection):
     self.locker.acquire()
-#    self.__connections.remove(connection)
-    newCons = []
-    for ci in self.__connections:
-      if ci.socket != connection.socket:
-        newCons.append(ci)
-    self.__connections = newCons
+    self.__connections.remove(connection)
+#    newCons = []
+#    for ci in self.__connections:
+#      if ci.socket != connection.socket:
+#        newCons.append(ci)
+#    self.__connections = newCons
     connection.socket.shutdown(socket.SHUT_RDWR)
     connection.socket.close()
     self.locker.release()

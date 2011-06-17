@@ -377,7 +377,8 @@ class MessageHandlerService:
   def __processManipulateTileMessage(self, message, connection):
     tileType = struct.unpack('<B', message.buf[1])[0]
     x, y = struct.unpack('<ii', message.buf[2:10])
-    flag = struct.unpack('<?', message.buf[10])[0]
+    newType = struct.unpack('<B', message.buf[10])[0]
+    flag = (newType == 1)
     if not flag:
       if tileType == 0 or tileType == 2:
         pass
@@ -385,6 +386,14 @@ class MessageHandlerService:
         pass
     if tileType == 0:
       self.server.world.killTile((x,y), flag, False, False)
+    elif tileType == 1:
+      self.server.world.placeTile(x, y, newType, False, True, -1)
+    elif tileType == 2:
+      pass # kill wall
+    elif tileType == 3:
+      pass # place wall
+    elif tileType == 4:
+      self.server.world.killTile((x,y), flag, False, True)
     response = Message(MessageType.ManipulateTile)
     response.appendByte(tileType)
     response.appendInt(x)
@@ -398,10 +407,13 @@ class MessageHandlerService:
     text = message.buf[5:]
     if text.startswith("/item "):
       itemName = text.replace("/item ", "")
-      itemMsg = self.__buildItemInfoMessage(len(self.server.world.items) + 1, connection.player.posX + 5, connection.player.posY, 0.19, -1.8, 1, itemName)
+      itemIndex = len(self.server.world.items) + 1
+      itemMsg = self.__buildItemInfoMessage(itemIndex, connection.player.posX + 5, connection.player.posY, 0.19, -1.8, 1, itemName)
       self.server.world.items.append(itemName)
       log.debug("Sending item: " + itemName + " to " + connection.player.name)
       self.messageSender.sendMessageToAllClients(itemMsg)
+      itemOwnerMsg = self.__buildItemOwnerInfoMessage(itemIndex, connection.clientNumber)
+      self.messageSender.sendMessageToAllClients(itemOwnerMsg)
     else:
       response = Message(MessageType.Message)
       response.appendByte(clientNumber)
@@ -410,6 +422,12 @@ class MessageHandlerService:
       response.appendByte(b)
       response.appendRaw(text)
       self.messageSender.sendMessageToAllClients(response) 
+
+  def __buildItemOwnerInfoMessage(self, itemIndex, clientNumber):
+    msg = Message(MessageType.ItemOwnerInfo)
+    msg.appendInt16(itemIndex)
+    msg.appendByte(clientNumber)
+    return msg
 
   def __processItemInfoMessage(self, message, connection):
     itemNum = struct.unpack('<h', message.buf[1:3])[0]

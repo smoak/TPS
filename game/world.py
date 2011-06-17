@@ -1,4 +1,9 @@
+import logging
+
 from game.tile import *
+import game.tile
+
+log = logging.getLogger()
 
 AIR_TILE = AirTile()
 
@@ -127,10 +132,35 @@ class World:
   def destroyChest(self, x, y):
     return True
 
+  def emptyTile(x, y, ignoreTiles = False):
+    tile = self.tiles[x][y]
+    if tile.isActive and not ignoreTiles:
+      return False
+    return True
+
   def placeTile(self, x, y, tileType, mute = False, forced = False, plr = -1):
     if x < 0 or y < 0 or x > self.width or y > self.height:
       return
-    pass
+    log.debug("Placing tile of type " + str(tileType) + " at (" + str(x) + ", " + str(y) + ")")
+    tile = self.tiles[x][y].copy()
+    if forced or self.emptyTile(x, y, False) or not tileType in game.tile.SOLID_TILES or (tileType == 23 and self.tiles[x][y].tileType == 0 and self.tiles[x][y].isActive) or (tileType == 2 and self.tiles[x][y].tileType == 0 and self.tiles[x][y].isActive) or (tileType == 60 and self.tiles[x][y].tileType == 59 and self.tiles[x][y].isActive) or (tileType == 70 and self.tiles[x][y].tileType == 59 and self.tiles[x][y].isActive):
+      if (tile.tileType != 0 or not tile.isActive) and tileType in [2, 23]:
+        return
+      if (tile.tileType != 50 or not tile.isActive) and tileType == 60:
+        return
+      if tile.liquid > 0:
+        if tileType in [3, 4, 20, 24, 27, 32, 51, 69, 72]:
+          return
+      tile.frameY = 0
+      tile.frameX = 0
+      if tileType in [3, 24]:
+        pass
+      elif tileType == 61:
+        pass
+      else:
+        tile.isActive = True
+        tile.tileType = tileType
+    self.tiles[x][y] = tile
 
   def update(self, elapsedMs):
     self.time += elapsedMs
