@@ -18,6 +18,7 @@ class MessageType:
   Unknown15 = 0x0F # 15
   PlayerHealthUpdate = 0x10 # 16
   ManipulateTile = 0x11 # 17
+  TileSquare = 0x14 # 20
   ItemInfo = 0x15 # 21
   ItemOwnerInfo = 0x16 # 22
   NpcInfo = 0x17 # 23
