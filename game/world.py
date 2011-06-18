@@ -85,7 +85,9 @@ class World:
           if not self.destroyChest(cx, cy):
             return
         if not noItem:
-          pass # TODO: Create a new item
+          pass
+          
+            
         self.tiles[x][y] = tile.copy()
         self.tiles[x][y].isActive = False
         self.tiles[x][y].frameX = -1

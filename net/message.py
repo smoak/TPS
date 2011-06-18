@@ -26,6 +26,7 @@ class MessageType:
   Message = 0x19 # 25
   Projectile = 0x1B # 27
   Unknown28 = 0x1C # 28
+  Unknown29 = 0x1D # 29
   PvpMode = 0x1E # 30
   ZoneInfo = 0x24 # 36
   PasswordRequest = 0x25 # 37
@@ -66,3 +67,13 @@ class Message:
     result = result + self.buf
     return result
     
+class ManipulateTileMessage(object):
+  def __init__(self, manipulateTile, x, y, flag):
+    self.message = Message(MessageType.ManipulateTile)
+    self.message.appendByte(manipulateTile)
+    self.message.appendInt(x)
+    self.message.appendInt(y)
+    self.message.appendByte(flag)
+    
+  def create(self):
+    return self.message.create()

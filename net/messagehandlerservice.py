@@ -343,8 +343,7 @@ class MessageHandlerService:
     self.__sendPlayerManaUpdateMessageFor(connection)
 
   def __processSendSpawnMessage(self, message, connection):
-#    log.warning("need to implement got send spawn message")
-    pass
+    log.warning("need to implement got send spawn message")
 
   def __processPlayerUpdateOneMessage(self, message, connection):
     if not self.__checkClientIdFor(message, connection):
@@ -365,7 +364,7 @@ class MessageHandlerService:
     self.__sendMessageToOtherClients(response, connection)
 
   def __processZoneInfoMessage(self, message, connection):
-    #log.debug("Got ZoneInfoMessage")
+    log.debug("Got ZoneInfoMessage")
     #log.debug(str(len(message.buf[2:])))
     clientNumber = struct.unpack('<B', message.buf[1])[0]
 #    zoneEvil,zoneMeteor,zoneDungeon,zoneJungle = struct.unpack('<????', message.buf[2:6])
@@ -381,9 +380,11 @@ class MessageHandlerService:
     flag = (newType == 1)
     if not flag:
       if tileType == 0 or tileType == 2:
-        pass
+        pass # antispam stuff
       elif tileType == 1 or tileType == 3:
-        pass
+        pass # antispam stuff
+    item = None
+    itemNum = None
     if tileType == 0:
       self.server.world.killTile((x,y), flag, False, False)
     elif tileType == 1:
@@ -400,6 +401,11 @@ class MessageHandlerService:
     response.appendInt(y)
     response.appendByte(flag)
     self.messageSender.sendMessageToOtherClients(response, connection)
+    if tileType == 1 and newType == 53:
+      self.__sendTileSquare(connection, x, y, 1)
+    if item:
+      itemInfoMessage = self.__buildItemInfoMessage(itemNum, item.position[0], item.position[1], item.velocity[0], item.velocity[1], item.stackSize, item.itemName)
+      self.messageSender.sendMessageToAllClients(itemInfoMessage)
 
   def __processMessageMessage(self, message, connection):
     clientNumber = struct.unpack('<B', message.buf[1])[0]
@@ -414,6 +420,9 @@ class MessageHandlerService:
       self.messageSender.sendMessageToAllClients(itemMsg)
       itemOwnerMsg = self.__buildItemOwnerInfoMessage(itemIndex, connection.clientNumber)
       self.messageSender.sendMessageToAllClients(itemOwnerMsg)
+    elif text.startswith("/loc"):
+      chatText = "Your location (" + str(connection.player.posX) + ", " + str(connection.player.posY) + ")"
+      self.messageSender.sendChatMessageFromServer(chatText, (255, 255, 15), [connection])
     else:
       response = Message(MessageType.Message)
       response.appendByte(clientNumber)
