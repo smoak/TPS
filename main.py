@@ -20,13 +20,19 @@ def debug_world():
   # copper = tileType 7
   # gold tileType 8
   # silver tileType 9
-  
+  # closeddoor tileType 10
+  # opendoor tileType 11
+  # some background tile tileType 12
+  # empty jar background tileType 13
+  # platform background tileType 14
+  # chest tileType 21
+  # corruption tileType 23
   w.tiles = [[air for y in range(w.height)] for x in range(w.width)]
   for x in range(80, w.width):
     for y in range(200, w.height):
       if x > 100:
         w.tiles[x][y] = Tile()
-        w.tiles[x][y].tileType = 9
+        w.tiles[x][y].tileType = 60
         w.tiles[x][y].isActive = True
         w.tiles[x][y].isLighted = True
         w.tiles[x][y].frameX = -1
