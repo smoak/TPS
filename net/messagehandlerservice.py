@@ -7,6 +7,7 @@ from game.player import Player
 from util.math import *
 from game.tile import *
 from net.messagesender import *
+from service.itemservice import ItemService
 
 
 CONNECTION_REQUEST_FORMAT = '<s' # Little Endian 
@@ -18,6 +19,7 @@ class MessageHandlerService:
     self.connectionManager = server.connectionManager
     self.server = server
     self.messageSender = MessageSender(self.connectionManager)
+    self.itemService = ItemService()
     
   def __sendDisconnect(self, connection, text):
     message = Message(MessageType.Disconnect)
@@ -149,13 +151,13 @@ class MessageHandlerService:
         connection.socket.send(tileSectionMsg.create())  
 
   def __sendItemInfo(self, connection):
-    log.warn("Need to implement Sending item info...")
-#    for i in range(200):
-#      itemInfoMsg = Message(MessageType.ItemInfo)
-#      item = self.server.world.items[i]
-#      itemInfoMsg.appendInt(i)
-#      itemInfoMsg.appendFloat(
-#      itemOwnerInfoMsg = Message(MessageType.ItemOwnerInfo)
+    for i in range(len(self.server.world.items)):
+      item = self.server.world.items[i]
+      if item.active:
+        itemInfoMessage = self.__buildItemInfoMessage(i, item.position[0], item.position[1], item.velocity[0], item.velocity[1], item.stackSize, item.itemName)
+        connection.socket.send(itemInfoMessage.create())
+        itemOwnerInfoMsg = self.__buildItemOwnerInfoMessage(i, item.owner)
+        connection.socket.send(itemOwnerInfoMsg.create())
 
   def __sendNpcInfo(self, connection):
     log.warn("Need to implement Sending NPC info...")
@@ -217,7 +219,6 @@ class MessageHandlerService:
     message.appendByte(0) # G
     message.appendByte(0) # B
     message.appendRaw("Welcome to the jungle! We got fun and games!")
-    log.debug("Sending motd to " + connection.player.name)
     connection.socket.send(message.create())
 
   def __sendPlayerUpdateTwoMessageFor(self, connection):
@@ -362,16 +363,29 @@ class MessageHandlerService:
     response.appendFloat(connection.player.velX)
     response.appendFloat(connection.player.velY)
     self.__sendMessageToOtherClients(response, connection)
-
+    try:
+      for i in range(len(self.server.world.items)):
+        item = self.server.world.items[i]
+        if item.active and item.collidesWithPlayer(connection.player):
+          log.debug("New owner for item ('%s'): %s" % (item.itemName, connection.player.name))
+          itemInfoMessage = self.__buildItemInfoMessage(i, item.position[0], item.position[1], item.velocity[0], item.velocity[1], item.stackSize, item.itemName)
+          self.messageSender.sendMessageToAllClients(itemInfoMessage)
+          itemOwnerInfoMsg = self.__buildItemOwnerInfoMessage(i, connection.clientNumber)
+          self.messageSender.sendMessageToAllClients(itemOwnerInfoMsg)
+          item.active = False
+    except Exception as ex:
+      log.error(ex)
+      
   def __processZoneInfoMessage(self, message, connection):
-    log.debug("Got ZoneInfoMessage")
+    #log.debug("Got ZoneInfoMessage")
     #log.debug(str(len(message.buf[2:])))
     clientNumber = struct.unpack('<B', message.buf[1])[0]
 #    zoneEvil,zoneMeteor,zoneDungeon,zoneJungle = struct.unpack('<????', message.buf[2:6])
     # not sure what we do with those ^ yet...
 
   def __processNpcTalkMessage(self, message, connection):
-    log.debug("Got NpcTalkMessage")
+    #log.debug("Got NpcTalkMessage")
+    pass
     
   def __processManipulateTileMessage(self, message, connection):
     tileType = struct.unpack('<B', message.buf[1])[0]
@@ -413,9 +427,14 @@ class MessageHandlerService:
     text = message.buf[5:]
     if text.startswith("/item "):
       itemName = text.replace("/item ", "")
-      itemIndex = len(self.server.world.items) + 1
+      item = self.itemService.getItemByName(itemName)
+      if not item:
+        self.messageSender.sendChatMessageFromServer("Unknown item: " + itemName, (255, 255, 15), [connection])
+        return
+      itemIndex = self.server.world.getNextItemNum()
       itemMsg = self.__buildItemInfoMessage(itemIndex, connection.player.posX + 5, connection.player.posY, 0.19, -1.8, 1, itemName)
-      self.server.world.items.append(itemName)
+      item.active = True
+      self.server.world.items[itemIndex] = item
       log.debug("Sending item: " + itemName + " to " + connection.player.name)
       self.messageSender.sendMessageToAllClients(itemMsg)
       itemOwnerMsg = self.__buildItemOwnerInfoMessage(itemIndex, connection.clientNumber)
@@ -443,20 +462,31 @@ class MessageHandlerService:
     posX, posY,velX,velY = struct.unpack('<ffff', message.buf[3:19])
     stack2 = struct.unpack('<B', message.buf[19])[0]
     itemName = message.buf[20:]
+    log.debug("Got item info message for item: %s number: %d" % (itemName, itemNum))
     if itemName == "0":
       if itemNum < 200:
+        self.server.world.items[itemNum].active = False
         message = self.__buildItemInfoMessage(itemNum, posX, posY, velX, velY, stack2, itemName)
         self.messageSender.sendMessageToAllClients(message)
     else:
       flag = (itemNum == 200)
+      item = self.itemService.getItemByName(itemName)
       if flag:
-        itemNum = 1 # need to find first available item number
-        message = self.__buildItemInfoMessage(itemNum, posX, posY, velX, velY, stack2, itemName)
+        itemNum = self.server.world.getNextItemNum()
+        self.server.world.items[itemNum] = item
+      self.server.world.items[itemNum].stack = stack2
+      self.server.world.items[itemNum].position = (posX, posY)
+      self.server.world.items[itemNum].velocity = (velX, velY)
+      self.server.world.items[itemNum].active = True
+      self.server.world.items[itemNum].owner = 255
+      message = self.__buildItemInfoMessage(itemNum, posX, posY, velX, velY, stack2, itemName)
+      if flag:        
         self.messageSender.sendMessageToAllClients(message)
       else:
         self.messageSender.sendMessageToOtherClients(message, connection)
-
+        
   def __buildItemInfoMessage(self, itemNum, posX, posY, velX, velY, stack2, itemName):
+    log.debug("<buildItemInfoMessage>(itemNum, posX, posY, velX, velY, stack2, itemName) (%d, %d, %d, %d, %d, %d, %s)" % (itemNum, posX, posY, velX, velY, stack2, itemName))
     message = Message(MessageType.ItemInfo)
     message.appendInt16(itemNum)
     message.appendFloat(posX)
@@ -470,50 +500,55 @@ class MessageHandlerService:
   def __processItemOwnerInfoMessage(self, message, connection):
     itemNumber = struct.unpack('<h', message.buf[1:3])[0]
     owner = struct.unpack('<B', message.buf[3])[0]
-#    owner = 255
+    log.debug("Got ItemOwnerInfo message. itemNumber: %d owner: %d" % (itemNumber, owner))
+    owner = 255
+    self.server.world.items[itemNumber].owner = owner
     response = Message(MessageType.ItemOwnerInfo)
     response.appendInt16(itemNumber)
     response.appendByte(owner)
     self.messageSender.sendMessageToAllClients(response)
 
   def processMessage(self, message, connection):
-    if not connection.authed and message.messageType != MessageType.ConnectionRequest and message.messageType != MessageType.PasswordResponse:
-      log.debug("Connection not authed!")
-      self.connectionManager.removeConnection(connection)
-      return      
-    if message.messageType == MessageType.ConnectionRequest:
-      self.__processConnectionRequest(message, connection)
-    elif message.messageType == MessageType.PlayerData:
-      self.__processPlayerDataMessage(message, connection)
-    elif message.messageType == MessageType.InventoryData:
-      self.__processInventoryDataMessage(message, connection)
-    elif message.messageType == MessageType.RequestWorldData:
-      self.__processRequestWorldDataMessage(message, connection)
-    elif message.messageType == MessageType.TileBlockRequest:
-      self.__processTileBlockRequestMessage(message, connection)
-    elif message.messageType == MessageType.Spawn:
-      self.__processSpawnMessage(message, connection)
-    elif message.messageType == MessageType.PlayerHealthUpdate:
-      self.__processPlayerHealthUpdateMessage(message, connection)
-    elif message.messageType == MessageType.PlayerManaUpdate:
-      self.__processPlayerManaUpdateMessage(message, connection)
-    elif message.messageType == MessageType.SendSpawn:
-      self.__processSendSpawnMessage(message, connection)
-    elif message.messageType == MessageType.PlayerUpdateOne:
-      self.__processPlayerUpdateOneMessage(message, connection)
-    elif message.messageType == MessageType.ZoneInfo:
-      self.__processZoneInfoMessage(message, connection)
-    elif message.messageType == MessageType.NpcTalk:
-      self.__processNpcTalkMessage(message, connection)
-    elif message.messageType == MessageType.ManipulateTile:
-      self.__processManipulateTileMessage(message, connection)
-    elif message.messageType == MessageType.Unknown15:
-      self.messageSender.syncPlayers()
-    elif message.messageType == MessageType.Message:
-      self.__processMessageMessage(message, connection)
-    elif message.messageType == MessageType.ItemInfo:
-      self.__processItemInfoMessage(message, connection)
-    elif message.messageType == MessageType.ItemOwnerInfo:
-      self.__processItemOwnerInfoMessage(message, connection)
-    else:
-      log.warning("Need to implement message type: " + str(message.messageType))
+    try:
+      if not connection.authed and message.messageType != MessageType.ConnectionRequest and message.messageType != MessageType.PasswordResponse:
+        log.debug("Connection not authed!")
+        self.connectionManager.removeConnection(connection)
+        return      
+      if message.messageType == MessageType.ConnectionRequest:
+        self.__processConnectionRequest(message, connection)
+      elif message.messageType == MessageType.PlayerData:
+        self.__processPlayerDataMessage(message, connection)
+      elif message.messageType == MessageType.InventoryData:
+        self.__processInventoryDataMessage(message, connection)
+      elif message.messageType == MessageType.RequestWorldData:
+        self.__processRequestWorldDataMessage(message, connection)
+      elif message.messageType == MessageType.TileBlockRequest:
+        self.__processTileBlockRequestMessage(message, connection)
+      elif message.messageType == MessageType.Spawn:
+        self.__processSpawnMessage(message, connection)
+      elif message.messageType == MessageType.PlayerHealthUpdate:
+        self.__processPlayerHealthUpdateMessage(message, connection)
+      elif message.messageType == MessageType.PlayerManaUpdate:
+        self.__processPlayerManaUpdateMessage(message, connection)
+      elif message.messageType == MessageType.SendSpawn:
+        self.__processSendSpawnMessage(message, connection)
+      elif message.messageType == MessageType.PlayerUpdateOne:
+        self.__processPlayerUpdateOneMessage(message, connection)
+      elif message.messageType == MessageType.ZoneInfo:
+        self.__processZoneInfoMessage(message, connection)
+      elif message.messageType == MessageType.NpcTalk:
+        self.__processNpcTalkMessage(message, connection)
+      elif message.messageType == MessageType.ManipulateTile:
+        self.__processManipulateTileMessage(message, connection)
+      elif message.messageType == MessageType.Unknown15:
+        self.messageSender.syncPlayers()
+      elif message.messageType == MessageType.Message:
+        self.__processMessageMessage(message, connection)
+      elif message.messageType == MessageType.ItemInfo:
+        self.__processItemInfoMessage(message, connection)
+      elif message.messageType == MessageType.ItemOwnerInfo:
+        self.__processItemOwnerInfoMessage(message, connection)
+      else:
+        log.warning("Need to implement message type: " + str(message.messageType))
+    except Exception as ex:
+      log.error(ex)

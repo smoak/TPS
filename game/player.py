@@ -28,3 +28,25 @@ class Player:
     self.playerFlags = 0
     self.armor = Inventory(self, MAX_ARMOR_SLOTS)
     self.active = False
+    self.width = 20
+    self.height = 42
+    
+  def hasSpaceFor(self, item):
+    # Heart and Star always return True
+    if item.itemType in [58,184]:
+      return True
+    num = 40
+    # copper, silver, gold, platinum coins respectively
+    if item.itemType in [71, 72, 73, 74]:
+      num = 44
+    # Check if we have any free inventory slots
+    for i in range(num):
+      if self.inventory.items[i].itemType == 0:
+        return True
+    # No free inventory slots so check to see if the item is already
+    # in the players inventory and its not > maxStackSize
+    for i in range(num):
+      if self.inventory.items[i].itemType > 0 and self.inventory.items[i].stackSize < 250:
+        if self.inventory.items[i].itemName == item.itemName:
+          return True
+    return False

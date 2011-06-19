@@ -1,7 +1,9 @@
 import logging
 
 from game.tile import *
+from util.math import *
 import game.tile
+from game.item import *
 
 log = logging.getLogger()
 
@@ -39,6 +41,8 @@ class World:
     self.spawn = []
     self.worldSurface = 0.0
     self.items = []
+    for i in range(200):
+      self.items.append(Item("Empty", 1))
     self.npcs = []
     self.waterLine = 0
     self.lavaLine = 0
@@ -139,6 +143,13 @@ class World:
     if tile.isActive and not ignoreTiles:
       return False
     return True
+    
+  def getNextItemNum(self):
+    for i in range(len(self.items)):
+      item = self.items[i]
+      if not item.active:
+        return i
+    return 0
 
   def placeTile(self, x, y, tileType, mute = False, forced = False, plr = -1):
     if x < 0 or y < 0 or x > self.width or y > self.height:
