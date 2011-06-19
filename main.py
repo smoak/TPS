@@ -5,6 +5,7 @@ from game.worldmanager import WorldManager
 from game.world import World
 from game.tile import *
 from util.tileutil import *
+from game.item import Item
 
 def debug_world():
   w = World()
@@ -17,6 +18,7 @@ def debug_world():
   air = AirTile()
   dirt = DirtTile()
   stone = StoneTile()
+  stone.tileType = 8
   # copper = tileType 7
   # gold tileType 8
   # silver tileType 9
@@ -25,31 +27,38 @@ def debug_world():
   # some background tile tileType 12
   # empty jar background tileType 13
   # platform background tileType 14
+  # platofrm background tileType 15
+  # weird looking thing tileType 16
+  # half a stone tile? tileType 17
+  # weird platform background: tileType 18
+  # full platform tile: tileType 19
   # chest tileType 21
   # corruption tileType 23
+  # 60 is mud with grass
   w.tiles = [[air for y in range(w.height)] for x in range(w.width)]
   for x in range(80, w.width):
     for y in range(200, w.height):
       if x > 100:
         w.tiles[x][y] = Tile()
-        w.tiles[x][y].tileType = 60
+        w.tiles[x][y].tileType = 19
         w.tiles[x][y].isActive = True
         w.tiles[x][y].isLighted = True
         w.tiles[x][y].frameX = -1
         w.tiles[x][y].frameY = -1
       else:
         w.tiles[x][y] = stone
-#      w.tiles[x][y] = dirt
-  t = w.tiles[100][199].copy()
-  t.isActive = False
-  w.tiles[100][199] = t     
+#      w.tiles[x][y] = dirt  
   
-  w.worldSurface = 200
+  w.worldSurface = 250
   w.rockLayer = 400
   w.waterLine = (w.rockLayer + w.height) / 2
   w.waterLine = w.waterLine + -50
   w.lavaLine = w.waterLine + 60
-  
+  item = Item("Iron Pickaxe", 1)
+  item.position = (90, 199)
+  item.active = True
+  item.owner = 255
+  w.items[0] = item
   return w
 
 def main():

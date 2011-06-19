@@ -21,7 +21,7 @@ class ItemGenerator:
         num3 = 9
     if num3 > 0:
       pass # create new item with type = num3 Item.NewItem(x * 16, y * 16, 16, 16, num3, 1, false);
-      item = Item("0", 1)
-      itemX = (16 * x) + 16 / 2 - 
+      #item = Item("0", 1)
+      #itemX = (16 * x) + 16 / 2 - 
 	
 	  return item

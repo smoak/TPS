@@ -31,6 +31,7 @@ class MessageType:
   ZoneInfo = 0x24 # 36
   PasswordRequest = 0x25 # 37
   PasswordResponse = 0x26 # 38
+  Unknown39 = 0x27 # 39
   NpcTalk = 0x28 # 40
   PlayerManaUpdate = 0x2A # 42
   PvpTeam = 0x2D # 45
