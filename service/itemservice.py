@@ -9,7 +9,7 @@ class ItemService(object):
     entity = self.itemRepository.getItemByType(type)
     result = None
     if entity:
-      result = Item(entity['name'], 1)
+      result = Item(entity['name'].encode('ascii', 'ignore'), 1)
       self.__mapEntityToDomain(entity, result)
     return result
     
@@ -17,7 +17,7 @@ class ItemService(object):
     entity = self.itemRepository.getItemByName(name)
     result = None
     if entity:
-      result = Item(entity['name'], 1)
+      result = Item(entity['name'].encode('ascii', 'ignore'), 1)
       self.__mapEntityToDomain(entity, result)
     return result
     

@@ -455,11 +455,10 @@ class MessageHandlerService:
     return msg
 
   def __processItemInfoMessage(self, message, connection):
-    log.debug("Received: " + repr(message.buf[1:]))
     itemNum = struct.unpack('<h', message.buf[1:3])[0]
     posX, posY,velX,velY = struct.unpack('<ffff', message.buf[3:19])
     stack2 = struct.unpack('<B', message.buf[19])[0]
-    itemName = message.buf[20:].encode('ascii', 'ignore')
+    itemName = message.buf[20:]
     if itemName == "0":
       if itemNum < 200:
         self.server.world.items[itemNum].active = False
@@ -468,7 +467,6 @@ class MessageHandlerService:
     else:
       flag = (itemNum == 200)
       item = self.itemService.getItemByName(itemName)
-      log.debug(item)
       if flag:
         itemNum = self.server.world.getNextItemNum()
         self.server.world.items[itemNum] = item
@@ -491,11 +489,7 @@ class MessageHandlerService:
     message.appendFloat(velX)
     message.appendFloat(velY)
     message.appendByte(stack2)
-    try:
-      message.appendRaw(itemName)
-    except Exception as ex:
-      log.error("ItemName is " + repr(itemName))
-      log.error(ex)
+    message.appendRaw(itemName)
     return message
 
   def __processItemOwnerInfoMessage(self, message, connection):
