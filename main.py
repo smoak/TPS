@@ -13,7 +13,7 @@ def debug_world():
   w.name = "Debug"
   w.width = 800
   w.height = 600
-  w.spawn = (100,199)
+  w.spawn = (100,198)
   w.isDay = True
   air = AirTile()
   dirt = DirtTile()
@@ -36,7 +36,7 @@ def debug_world():
   # corruption tileType 23
   # 60 is mud with grass
   w.tiles = [[air for y in range(w.height)] for x in range(w.width)]
-  for x in range(80, w.width):
+  for x in range(w.width):
     for y in range(200, w.height):
       if x > 100:
         w.tiles[x][y] = Tile()
@@ -49,16 +49,16 @@ def debug_world():
         w.tiles[x][y] = stone
 #      w.tiles[x][y] = dirt  
   
-  w.worldSurface = 250
+  w.worldSurface = 300
   w.rockLayer = 400
   w.waterLine = (w.rockLayer + w.height) / 2
   w.waterLine = w.waterLine + -50
   w.lavaLine = w.waterLine + 60
   item = Item("Iron Pickaxe", 1)
-  item.position = (90, 199)
+  item.position = (557, 3180)
   item.active = True
   item.owner = 255
-  w.items[0] = item
+  #w.items[3] = item
   return w
 
 def main():

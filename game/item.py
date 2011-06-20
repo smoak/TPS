@@ -53,4 +53,4 @@ class Item:
     self.stackSize = min(stackSize, MAX_STACK_SIZE)
     
   def __repr__(self):
-    return "<Item('%s', Type=%d, %dx%d)>" % (self.itemName, self.itemType, self.width, self.height)
+    return "<Item('%s', Type=%d, %dx%d, (%d, %d))>" % (self.itemName, self.itemType, self.width, self.height, self.position[0], self.position[1])
