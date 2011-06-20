@@ -308,7 +308,6 @@ class MessageHandlerService:
     spawnX, spawnY = struct.unpack('<ii', message.buf[2:10])
     connection.player.spawn = (spawnX, spawnY)
     connection.player.active = True
-    log.debug("Got spawn for " + connection.player.name + " " + str(spawnX) + ", " + str(spawnY))
 #    if connection.state >= 3:
       # we have to send spawn data to the other clients and NOT this one...
     response = Message(MessageType.Spawn)
@@ -367,12 +366,10 @@ class MessageHandlerService:
       for i in range(len(self.server.world.items)):
         item = self.server.world.items[i]
         if item.active and item.collidesWithPlayer(connection.player):
-          log.debug("New owner for item ('%s'): %s" % (item.itemName, connection.player.name))
           itemInfoMessage = self.__buildItemInfoMessage(i, item.position[0], item.position[1], item.velocity[0], item.velocity[1], item.stackSize, item.itemName)
           self.messageSender.sendMessageToAllClients(itemInfoMessage)
           itemOwnerInfoMsg = self.__buildItemOwnerInfoMessage(i, connection.clientNumber)
           self.messageSender.sendMessageToAllClients(itemOwnerInfoMsg)
-          item.active = False
     except Exception as ex:
       log.error(ex)
       
@@ -458,11 +455,11 @@ class MessageHandlerService:
     return msg
 
   def __processItemInfoMessage(self, message, connection):
+    log.debug("Received: " + repr(message.buf[1:]))
     itemNum = struct.unpack('<h', message.buf[1:3])[0]
     posX, posY,velX,velY = struct.unpack('<ffff', message.buf[3:19])
     stack2 = struct.unpack('<B', message.buf[19])[0]
-    itemName = message.buf[20:]
-    log.debug("Got item info message for item: %s number: %d" % (itemName, itemNum))
+    itemName = message.buf[20:].encode('ascii', 'ignore')
     if itemName == "0":
       if itemNum < 200:
         self.server.world.items[itemNum].active = False
@@ -471,10 +468,11 @@ class MessageHandlerService:
     else:
       flag = (itemNum == 200)
       item = self.itemService.getItemByName(itemName)
+      log.debug(item)
       if flag:
         itemNum = self.server.world.getNextItemNum()
         self.server.world.items[itemNum] = item
-      self.server.world.items[itemNum].stack = stack2
+      self.server.world.items[itemNum].setAmount(stack2)
       self.server.world.items[itemNum].position = (posX, posY)
       self.server.world.items[itemNum].velocity = (velX, velY)
       self.server.world.items[itemNum].active = True
@@ -486,7 +484,6 @@ class MessageHandlerService:
         self.messageSender.sendMessageToOtherClients(message, connection)
         
   def __buildItemInfoMessage(self, itemNum, posX, posY, velX, velY, stack2, itemName):
-    log.debug("<buildItemInfoMessage>(itemNum, posX, posY, velX, velY, stack2, itemName) (%d, %d, %d, %d, %d, %d, %s)" % (itemNum, posX, posY, velX, velY, stack2, itemName))
     message = Message(MessageType.ItemInfo)
     message.appendInt16(itemNum)
     message.appendFloat(posX)
@@ -494,13 +491,16 @@ class MessageHandlerService:
     message.appendFloat(velX)
     message.appendFloat(velY)
     message.appendByte(stack2)
-    message.appendRaw(itemName)
+    try:
+      message.appendRaw(itemName)
+    except Exception as ex:
+      log.error("ItemName is " + repr(itemName))
+      log.error(ex)
     return message
 
   def __processItemOwnerInfoMessage(self, message, connection):
     itemNumber = struct.unpack('<h', message.buf[1:3])[0]
     owner = struct.unpack('<B', message.buf[3])[0]
-    log.debug("Got ItemOwnerInfo message. itemNumber: %d owner: %d" % (itemNumber, owner))
     owner = 255
     self.server.world.items[itemNumber].owner = owner
     response = Message(MessageType.ItemOwnerInfo)
