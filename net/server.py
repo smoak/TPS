@@ -17,7 +17,6 @@ class TerrariaServer:
     
   def on_client_receive(self, msg):
     print "Got new message!"
-    print type(msg[0])
     
   def start(self):
     print "Starting server..."
