@@ -1,5 +1,5 @@
 import struct
-import logging
+import logging, re
 
 from message import Message, MessageType
 import server
@@ -426,13 +426,24 @@ class MessageHandlerService:
     r,g,b = struct.unpack('<BBB', message.buf[2:5])
     text = message.buf[5:]
     if text.startswith("/item "):
-      itemName = text.replace("/item ", "")
+      regex = r"/item ([A-Za-z]+)\s*([A-Za-z]*)\s*(\d*)"
+      match = re.match(regex, text)
+      itemName = match.group(1).encode('ascii', 'ignore')
+      if match.group(2) != '':
+        itemName = " " + match.group(2).encode('ascii', 'ignore')
+      amount = 1
+      if match.group(3) != '':
+        amount = clamp(1, 255, int(match.group(3)))
       item = self.itemService.getItemByName(itemName)
       if not item:
         self.messageSender.sendChatMessageFromServer("Unknown item: " + itemName, (255, 255, 15), [connection])
         return
       itemIndex = self.server.world.getNextItemNum()
-      itemMsg = self.__buildItemInfoMessage(itemIndex, connection.player.posX + 5, connection.player.posY, 0.19, -1.8, 1, itemName)
+      try:
+        itemMsg = self.__buildItemInfoMessage(itemIndex, connection.player.posX + 5, connection.player.posY, 0.19, -1.8, amount, itemName)
+      except Exception as ex:
+        log.error(ex)
+      item.setAmount(amount)
       item.active = True
       self.server.world.items[itemIndex] = item
       log.debug("Sending item: " + itemName + " to " + connection.player.name)
@@ -504,6 +515,24 @@ class MessageHandlerService:
     response.appendInt16(itemNumber)
     response.appendByte(owner)
     self.messageSender.sendMessageToAllClients(response)
+    
+  def __processProjectileMessage(self, message, connection):
+    projectileIdentity = struct.unpack('<h', message.buf[1:3])[0]
+    posX, posY, velX, velY, knockback, damage, owner, projectileType = struct.unpack('<fffffhBB', message.buf[3:25])
+    ai1, ai2 = struct.unpack('<ff', message.buf[25:34])
+    response = Message(MessageType.Projectile)
+    response.appendInt16(projectileIdentity)
+    response.appendFloat(posX)
+    response.appendFloat(posY)
+    response.appendFloat(velX)
+    response.appendFloat(velY)
+    response.appendFloat(knockback)
+    response.appendInt16(damage)
+    response.appendByte(owner)
+    response.appendByte(projectileType)
+    response.appendFloat(ai1)
+    response.appendFloat(ai2)
+    self.messageSender.sendMessageToOtherClients(response, connection)
 
   def processMessage(self, message, connection):
     try:
@@ -545,6 +574,8 @@ class MessageHandlerService:
         self.__processItemInfoMessage(message, connection)
       elif message.messageType == MessageType.ItemOwnerInfo:
         self.__processItemOwnerInfoMessage(message, connection)
+      elif message.messageType == MessageType.Projectile:
+        self.__processProjectileMessage(message, connection)
       else:
         log.warning("Need to implement message type: " + str(message.messageType))
     except Exception as ex:
