@@ -1,0 +1,47 @@
+[
+  { 
+    "tileName": "Dirt",
+	"tileType": 0,
+	"drops": [ {"itemType": 2, "amount": 1, "chance": 100.0 } ]
+  },
+  {
+    "tileName": "Stone",
+	"tileType": 1,
+	"drops": [ {"itemType": 3, "amount": 1, "chance": 100.0 } ]
+  },
+  {
+    "tileName": "Grass",
+	"tileType": 2,
+	"drops": [ {"itemType": 2, "amount": 1, "chance": 100.0 } ]
+  },
+  {
+    "tileName": "Unknown4",
+	"tileType": 4,
+	"drops": [ {"itemType": 8, "amount": 1, "chance": 100.0 } ]
+  },
+  {
+    "tileName": "Iron",
+	"tileType": 6,
+	"drops": [ {"itemType": 11, "amount": 1, "chance": 100.0 } ]
+  },
+  {
+    "tileName": "Copper",
+	"tileType": 7,
+	"drops": [ {"itemType": 12, "amount": 1, "chance": 100.0 } ]
+  },
+  {
+    "tileName": "Gold",
+	"tileType": 8,
+	"drops": [ {"itemType": 13, "amount": 1, "chance": 100.0 } ]
+  },
+  {
+    "tileName": "Silver",
+	"tileType": 9,
+	"drops": [ {"itemType": 14, "amount": 1, "chance": 100.0 } ]
+  },
+  {
+    "tileName": "Platform",
+	"tileType": 19,
+	"drops": [ {"itemType": 94, "amount": 1, "chance": 100.0 } ]
+  }
+]

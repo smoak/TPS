@@ -102,6 +102,7 @@ class TerrariaServer:
     self.listenAddress = listenAddr
     self.listenPort = listenPort
     self.password = password
+    self.motd = "Welcome to the jungle! We got fun and games!"
     self.world = world
     self.networkState = NetworkState.Closed
     self.connectionManager = ConnectionManager(self.world)

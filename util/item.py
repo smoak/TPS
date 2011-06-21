@@ -1,27 +1,37 @@
+import random, logging
+
 from game.item import Item
+from service.itemservice import ItemService
+from service.loot import LootService
+
+NEW_ITEM_WIDTH = 16
+NEW_ITEM_HEIGHT = NEW_ITEM_WIDTH
+log = logging.getLogger()
 
 class ItemGenerator:
-  def __init__(self, world):
-    self.world = world
+  def __init__(self):
+    self.itemService = ItemService()
+    self.lootService = LootService()
 	
-  def generateItemFromKillingTile(x, y):
-    tile = self.world.tiles[x][y]
-	  item = None
-	  num3 = 0
-    if tile.tileTye in [0, 2]:
-      num3 = 2
-    elif tile.tileType == 1:
-      num3 = 3
-    elif tile.tileType == 4:
-      num3 = 8
-    elif tile.tileType == 5:
-      if tile.frameX >= 22 and tile.frameY >= 198:
-        num3 = 27
-      else:
-        num3 = 9
-    if num3 > 0:
-      pass # create new item with type = num3 Item.NewItem(x * 16, y * 16, 16, 16, num3, 1, false);
-      #item = Item("0", 1)
-      #itemX = (16 * x) + 16 / 2 - 
-	
-	  return item
+  def generateItemFromKillingTile(self, tile, tileX, tileY):
+    newItemX =  tileX * 16
+    newItemY =  tileY * 16
+    newItem = None
+    itemType = None
+    amount = None
+    try:
+      itemType, amount = self.lootService.getTileLootTableFor(tile).chooseDrop()
+    except Exception as ex:
+      log.error(ex)
+    if itemType and amount:
+      newItem = self.itemService.getItemByType(itemType)
+      newItem.stackSize = amount
+      newItemX = (newItemX + NEW_ITEM_WIDTH / 2 - newItem.width / 2)
+      newItemY = (newItemY + NEW_ITEM_HEIGHT / 2 - newItem.height / 2)
+      newItem.position = (newItemX, newItemY)
+      newItemVelX = random.randint(-20, 21) * 0.1
+      newItemVelY = random.randint(-30, -10) * 0.1
+      newItem.velocity = (newItemVelX, newItemVelY)
+      newItem.active = True
+    
+    return newItem
