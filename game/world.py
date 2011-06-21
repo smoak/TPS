@@ -70,13 +70,6 @@ class World:
       tile = self.tiles[x][y]
       if tile.tileType in ([3,24]):
         if tile.frameX == 144:
-          # newItemX = x * 16
-          # newItemY = y * 16
-          # newItemWidth = 16
-          # newItemHeight = 16
-          # newItemType = 5 # 60 for tileType == 24
-          # newItemStack = 1
-#          newItemPosX = newItemX + newItemWidth / 2 -
           newItem = self.itemGenerator.generateItemFromKillingTile(tile, x, y)
       if fail:
         if tile.tileType in ([2,23]):
@@ -163,7 +156,6 @@ class World:
   def placeTile(self, x, y, tileType, mute = False, forced = False, plr = -1):
     if x < 0 or y < 0 or x > self.width or y > self.height:
       return
-    log.debug("Placing tile of type " + str(tileType) + " at (" + str(x) + ", " + str(y) + ")")
     tile = self.tiles[x][y].copy()
     if forced or self.emptyTile(x, y, False) or not tileType in game.tile.SOLID_TILES or (tileType == 23 and self.tiles[x][y].tileType == 0 and self.tiles[x][y].isActive) or (tileType == 2 and self.tiles[x][y].tileType == 0 and self.tiles[x][y].isActive) or (tileType == 60 and self.tiles[x][y].tileType == 59 and self.tiles[x][y].isActive) or (tileType == 70 and self.tiles[x][y].tileType == 59 and self.tiles[x][y].isActive):
       if (tile.tileType != 0 or not tile.isActive) and tileType in [2, 23]:

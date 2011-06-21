@@ -61,7 +61,7 @@ class AirTile(Tile):
     Tile.__init__(self)
     self.tileType = 0
     self.isActive = False
-    self.isLighted = False
+    self.isLighted = True
     self.frameX = 0
     self.frameY = 0
     self.wall = 0
