@@ -19,7 +19,7 @@ class MessageHandlerService:
     self.connectionManager = server.connectionManager
     self.server = server
     self.messageSender = MessageSender(self.connectionManager)
-    self.itemService = ItemService()
+    self.itemService = self.server.world.itemGenerator.itemService
     
   def __sendDisconnect(self, connection, text):
     message = Message(MessageType.Disconnect)
@@ -218,7 +218,7 @@ class MessageHandlerService:
     message.appendByte(255) # R 
     message.appendByte(0) # G
     message.appendByte(0) # B
-    message.appendRaw("Welcome to the jungle! We got fun and games!")
+    message.appendRaw(self.server.motd)
     connection.socket.send(message.create())
 
   def __sendPlayerUpdateTwoMessageFor(self, connection):
@@ -351,7 +351,9 @@ class MessageHandlerService:
     num = struct.unpack('<B', message.buf[1])[0]
     connection.player.playerFlags = struct.unpack('<B', message.buf[2])[0]
     connection.player.selectedItem = struct.unpack('<B', message.buf[3])[0]
-    connection.player.posX,connection.player.posY = struct.unpack('<ff', message.buf[4:12])
+    #connection.player.posX,connection.player.posY = struct.unpack('<ff', message.buf[4:12])
+    newPlayerPosX, newPlayerPosY = struct.unpack('<ff', message.buf[4:12])
+    connection.player.updatePosition((newPlayerPosX, newPlayerPosY))
     connection.player.velX,connection.player.velY = struct.unpack('<ff', message.buf[12:20])
     response = Message(MessageType.PlayerUpdateOne)
     response.appendByte(num)
@@ -363,13 +365,14 @@ class MessageHandlerService:
     response.appendFloat(connection.player.velY)
     self.__sendMessageToOtherClients(response, connection)
     try:
-      for i in range(len(self.server.world.items)):
-        item = self.server.world.items[i]
-        if item.active and item.collidesWithPlayer(connection.player):
-          itemInfoMessage = self.__buildItemInfoMessage(i, item.position[0], item.position[1], item.velocity[0], item.velocity[1], item.stackSize, item.itemName)
-          self.messageSender.sendMessageToAllClients(itemInfoMessage)
-          itemOwnerInfoMsg = self.__buildItemOwnerInfoMessage(i, connection.clientNumber)
-          self.messageSender.sendMessageToAllClients(itemOwnerInfoMsg)
+      if connection.player.hasMoved():
+        for i in range(len(self.server.world.items)):
+          item = self.server.world.items[i]
+          if item.active and item.collidesWithPlayer(connection.player):
+            itemInfoMessage = self.__buildItemInfoMessage(i, item.position[0], item.position[1], item.velocity[0], item.velocity[1], item.stackSize, item.itemName)
+            self.messageSender.sendMessageToAllClients(itemInfoMessage)
+            itemOwnerInfoMsg = self.__buildItemOwnerInfoMessage(i, connection.clientNumber)
+            self.messageSender.sendMessageToAllClients(itemOwnerInfoMsg)
     except Exception as ex:
       log.error(ex)
       
@@ -397,7 +400,7 @@ class MessageHandlerService:
     item = None
     itemNum = None
     if tileType == 0:
-      self.server.world.killTile((x,y), flag, False, False)
+      (item, itemNum) = self.server.world.killTile((x,y), flag, False, False)
     elif tileType == 1:
       self.server.world.placeTile(x, y, newType, False, True, -1)
     elif tileType == 2:
@@ -405,7 +408,7 @@ class MessageHandlerService:
     elif tileType == 3:
       pass # place wall
     elif tileType == 4:
-      self.server.world.killTile((x,y), flag, False, True)
+      (item, itemNum) = self.server.world.killTile((x,y), flag, False, True)
     response = Message(MessageType.ManipulateTile)
     response.appendByte(tileType)
     response.appendInt(x)
@@ -495,7 +498,7 @@ class MessageHandlerService:
   def __processItemOwnerInfoMessage(self, message, connection):
     itemNumber = struct.unpack('<h', message.buf[1:3])[0]
     owner = struct.unpack('<B', message.buf[3])[0]
-    owner = 255
+    #owner = 255
     self.server.world.items[itemNumber].owner = owner
     response = Message(MessageType.ItemOwnerInfo)
     response.appendInt16(itemNumber)

@@ -18,7 +18,9 @@ def debug_world():
   air = AirTile()
   dirt = DirtTile()
   stone = StoneTile()
-  stone.tileType = 8
+  
+  # tileType 4 and 5 causes stackoverflow on clients...
+  # iron = tileType 6
   # copper = tileType 7
   # gold tileType 8
   # silver tileType 9
@@ -33,6 +35,7 @@ def debug_world():
   # weird platform background: tileType 18
   # full platform tile: tileType 19
   # chest tileType 21
+  
   # corruption tileType 23
   # 60 is mud with grass
   w.tiles = [[air for y in range(w.height)] for x in range(w.width)]
@@ -40,7 +43,7 @@ def debug_world():
     for y in range(200, w.height):
       if x > 100:
         w.tiles[x][y] = Tile()
-        w.tiles[x][y].tileType = 19
+        w.tiles[x][y].tileType = 6
         w.tiles[x][y].isActive = True
         w.tiles[x][y].isLighted = True
         w.tiles[x][y].frameX = -1

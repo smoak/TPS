@@ -31,23 +31,23 @@ class Item:
   def collidesWithPlayer(self, player):
     if not player.hasSpaceFor(self):
       return False
-    num3 = math.fabs(player.posX + (player.width / 2.0) - self.position[0] - (self.width / 2.0)) + math.fabs(player.posY + (player.height / 2.0) - self.position[1] - self.height)
-    #log.debug("collidesWithPlayer (%s) num3=%d" % (player.name, num3))
-    return num3 >= 30.0 
+    #num3 = math.fabs(player.posX + (player.width / 2.0) - self.position[0] - (self.width / 2.0)) + math.fabs(player.posY + (player.height / 2.0) - self.position[1] - self.height)
+    #log.debug("collidesWithPlayer (%s) num3=%d itemVeloctiy: (%f, %f)" % (player.name, num3, self.velocity[0], self.velocity[1]))
+    #return num3 >= 30.0 and num3 <= 130.0
     
-    # left1 = self.position[0] + self.__colXOffset()
-    # left2 = player.posX + ((player.width - (player.width * 0.90)) / 2)
-    # right1 = left1 + self.__colWidth()
-    # right2 = player.posX + (player.width * 0.90)
-    # top1 = self.position[1] + self.__colYOffset()
-    # top2 = player.posY + ((player.height - (player.height * 0.90)) / 2)
-    # bottom1 = top1 + self.__colHeight()
-    # bottom2 = top2 + (player.height * 0.90)
+    left1 = self.position[0] + self.__colXOffset()
+    left2 = player.posX + ((player.width - (player.width * 0.90)) / 2)
+    right1 = left1 + self.__colWidth()
+    right2 = player.posX + (player.width * 0.90)
+    top1 = self.position[1] + self.__colYOffset()
+    top2 = player.posY + ((player.height - (player.height * 0.90)) / 2)
+    bottom1 = top1 + self.__colHeight()
+    bottom2 = top2 + (player.height * 0.90)
     
-    # if (bottom1 < top2) or (top1 > bottom2) or (right1 < left2) or (left1 > right2):
-      # return True
+    if (bottom1 < top2) or (top1 > bottom2) or (right1 < left2) or (left1 > right2):
+      return True
       
-    #return False
+    return False
 
   def setAmount(self, stackSize):
     self.stackSize = min(stackSize, MAX_STACK_SIZE)

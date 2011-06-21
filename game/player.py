@@ -30,6 +30,17 @@ class Player:
     self.active = False
     self.width = 20
     self.height = 42
+    self.oldPosX = self.posX
+    self.oldPosY = self.posY
+    
+  def updatePosition(self, newPosition):
+    self.oldPosX = self.posX
+    self.oldPosY = self.posY
+    self.posX = newPosition[0]
+    self.posY = newPosition[1]
+    
+  def hasMoved(self):
+    return self.oldPosX != self.posX or self.oldPosY != self.posY
     
   def hasSpaceFor(self, item):
     # Heart and Star always return True

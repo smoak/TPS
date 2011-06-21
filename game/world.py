@@ -4,6 +4,7 @@ from game.tile import *
 from util.math import *
 import game.tile
 from game.item import *
+from util.item import ItemGenerator
 
 log = logging.getLogger()
 
@@ -22,6 +23,7 @@ class MoonPhase:
 class World:
 
   def __init__(self):
+    self.itemGenerator = ItemGenerator()
     self.time = 54001
     self.moonphase = MoonPhase.Four
     self.isBloodMoon = False
@@ -55,25 +57,27 @@ class World:
   
   def killTile(self, coord, fail = False, effectOnly = False, noItem = False):
     x, y = coord[0], coord[1]
+    newItem = None
     if x < 0 or y < 0 or x >= self.width or y >= self.height:
-      return
+      return None
     if self.tiles[x][y].isActive:
       if y >= 1 and self.tiles[x][y - 1].isActive and ((self.tiles[x][y - 1].tileType == 5 and self.tiles[x][y].tileType != 5) or (self.tiles[x][y - 1].tileType == 21 and self.tiles[x][y].tileType != 21) or (self.tiles[x][y - 1].tileType == 26 and self.tiles[x][y].tileType != 26) or (self.tiles[x][y - 1].tileType == 72 and self.tiles[x][y].tileType != 72) or (self.tiles[x][y - 1].tileType == 12 and self.tiles[x][y].tileType != 12)):
         if self.tiles[x][y - 1].tileType != 5:
-          return
+          return None
         if (self.tiles[x][y - 1].frameX != 66 or self.tiles[x][y - 1].frameY < 0 or self.tiles[x][y - 1].frameY > 44) and (self.tiles[x][y - 1].frameX != 88 or self.tiles[x][y - 1].frameY < 66 or self.tiles[x][y - 1].frameY > 110) and self.tiles[x][y - 1].frameY < 198:
-          return
+          return None
     if not effectOnly:
       tile = self.tiles[x][y]
       if tile.tileType in ([3,24]):
         if tile.frameX == 144:
-          newItemX = x * 16
-          newItemY = y * 16
-          newItemWidth = 16
-          newItemHeight = 16
-          newItemType = 5 # 60 for tileType == 24
-          newItemStack = 1
+          # newItemX = x * 16
+          # newItemY = y * 16
+          # newItemWidth = 16
+          # newItemHeight = 16
+          # newItemType = 5 # 60 for tileType == 24
+          # newItemStack = 1
 #          newItemPosX = newItemX + newItemWidth / 2 -
+          newItem = self.itemGenerator.generateItemFromKillingTile(tile, x, y)
       if fail:
         if tile.tileType in ([2,23]):
           self.tiles[x][y] = tile.copy()
@@ -89,15 +93,20 @@ class World:
           if not self.destroyChest(cx, cy):
             return
         if not noItem:
-          pass
-          
-            
+          newItem = self.itemGenerator.generateItemFromKillingTile(tile, x, y)
         self.tiles[x][y] = tile.copy()
         self.tiles[x][y].isActive = False
         self.tiles[x][y].frameX = -1
         self.tiles[x][y].frameY = -1
         self.tiles[x][y].tileType = 0
+        if self.tiles[x][y].isTileSolid():
+          self.tiles[x][y].isLighted = False
         self.squareTileFrame(coord, True)
+    itemNum = -1
+    if newItem:
+      itemNum = self.getNextItemNum()
+      self.items[itemNum] = newItem
+    return (newItem, itemNum)
 
   def squareTileFrame(self, coord, resetFrame = True):
     x, y = coord[0], coord[1]
