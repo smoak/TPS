@@ -413,7 +413,7 @@ class MessageHandlerService:
     response.appendByte(tileType)
     response.appendInt(x)
     response.appendInt(y)
-    response.appendByte(flag)
+    response.appendByte(newType)
     self.messageSender.sendMessageToOtherClients(response, connection)
     if tileType == 1 and newType == 53:
       self.__sendTileSquare(connection, x, y, 1)
@@ -430,7 +430,7 @@ class MessageHandlerService:
       match = re.match(regex, text)
       itemName = match.group(1).encode('ascii', 'ignore')
       if match.group(2) != '':
-        itemName = " " + match.group(2).encode('ascii', 'ignore')
+        itemName = itemName + " " + match.group(2).encode('ascii', 'ignore')
       amount = 1
       if match.group(3) != '':
         amount = clamp(1, 255, int(match.group(3)))
@@ -518,8 +518,8 @@ class MessageHandlerService:
     
   def __processProjectileMessage(self, message, connection):
     projectileIdentity = struct.unpack('<h', message.buf[1:3])[0]
-    posX, posY, velX, velY, knockback, damage, owner, projectileType = struct.unpack('<fffffhBB', message.buf[3:25])
-    ai1, ai2 = struct.unpack('<ff', message.buf[25:34])
+    posX, posY, velX, velY, knockback, damage, owner, projectileType = struct.unpack('<fffffhBB', message.buf[3:27])
+    ai1, ai2 = struct.unpack('<ff', message.buf[27:35])
     response = Message(MessageType.Projectile)
     response.appendInt16(projectileIdentity)
     response.appendFloat(posX)
@@ -532,6 +532,14 @@ class MessageHandlerService:
     response.appendByte(projectileType)
     response.appendFloat(ai1)
     response.appendFloat(ai2)
+    self.messageSender.sendMessageToOtherClients(response, connection)
+    
+  def __processProjectileOwnerInfoMessage(self, message, connection):
+    projectileIdentity = struct.unpack('<h', message.buf[1:3])[0]
+    owner = struct.unpack('<B', message.buf[3])[0]
+    response = Message(MessageType.ProjectileOwnerInfo)
+    response.appendInt16(projectileIdentity)
+    response.appendByte(owner)
     self.messageSender.sendMessageToOtherClients(response, connection)
 
   def processMessage(self, message, connection):
@@ -576,6 +584,8 @@ class MessageHandlerService:
         self.__processItemOwnerInfoMessage(message, connection)
       elif message.messageType == MessageType.Projectile:
         self.__processProjectileMessage(message, connection)
+      elif message.messageType == MessageType.ProjectileOwnerInfo:
+        self.__processProjectileOwnerInfoMessage(message, connection)
       else:
         log.warning("Need to implement message type: " + str(message.messageType))
     except Exception as ex:
