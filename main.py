@@ -34,10 +34,16 @@ def debug_world():
   # half a stone tile? tileType 17
   # weird platform background: tileType 18
   # full platform tile: tileType 19
+  # weird plant background tileType 20
   # chest tileType 21
   # demonite tileType 22
   # corruption tileType 23
+  # weird half corruption tileType 24 (crashes client when mined)
   # ebonstone tileType 25
+  # weird background tileType 26
+  # weird half background tileType 27
+  # weird background tileType 28
+  # piggy bank tileType 29
   # wood tileType 30
   # weird candle background thing tileType 33
   # meteorite tileType 37
@@ -51,7 +57,7 @@ def debug_world():
     for y in range(200, w.height):
       if x > 100:
         w.tiles[x][y] = Tile()
-        w.tiles[x][y].tileType = 41
+        w.tiles[x][y].tileType = 29
         w.tiles[x][y].isActive = True
         w.tiles[x][y].isLighted = True
         w.tiles[x][y].frameX = -1
