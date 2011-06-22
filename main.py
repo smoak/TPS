@@ -41,13 +41,17 @@ def debug_world():
   # wood tileType 30
   # weird candle background thing tileType 33
   # meteorite tileType 37
+  # gray brick tileType 38
+  # red brick tileType 39
+  # clay tileType 40
+  # blue brick tileType 41
   # 60 is mud with grass
   w.tiles = [[air for y in range(w.height)] for x in range(w.width)]
   for x in range(w.width):
     for y in range(200, w.height):
       if x > 100:
         w.tiles[x][y] = Tile()
-        w.tiles[x][y].tileType = 37
+        w.tiles[x][y].tileType = 41
         w.tiles[x][y].isActive = True
         w.tiles[x][y].isLighted = True
         w.tiles[x][y].frameX = -1
@@ -55,20 +59,20 @@ def debug_world():
       else:
         w.tiles[x][y] = stone
 #      w.tiles[x][y] = dirt  
-  w.tiles[w.spawn[0]][w.spawn[1]] = w.tiles[w.spawn[0]][w.spawn[1]].copy()
-  w.tiles[w.spawn[0]][w.spawn[1]].tileType = 2
-  w.tiles[w.spawn[0]][w.spawn[1]].isActive = True
-  w.tiles[w.spawn[0]][w.spawn[1]].isLighted = False
+ # w.tiles[w.spawn[0]][w.spawn[1]] = w.tiles[w.spawn[0]][w.spawn[1]].copy()
+ # w.tiles[w.spawn[0]][w.spawn[1]].tileType = 2
+ # w.tiles[w.spawn[0]][w.spawn[1]].isActive = True
+ # w.tiles[w.spawn[0]][w.spawn[1]].isLighted = False
   
-  w.tiles[w.spawn[0]][w.spawn[1] - 1] = w.tiles[w.spawn[0]][w.spawn[1] - 1].copy()
-  w.tiles[w.spawn[0]][w.spawn[1] - 1].tileType = 3
-  w.tiles[w.spawn[0]][w.spawn[1] - 1].isActive = True
-  w.tiles[w.spawn[0]][w.spawn[1] - 1].isLighted = True
-  w.tiles[w.spawn[0]][w.spawn[1] - 1].frameX = 18
-  w.tiles[w.spawn[0]][w.spawn[1] - 1].frameY = 0
-  w.tiles[w.spawn[0]][w.spawn[1] - 1].wall = 0
-  w.tiles[w.spawn[0]][w.spawn[1] - 1].liquid = 0
-  w.tiles[w.spawn[0]][w.spawn[1] - 1].isLava = False
+  #w.tiles[w.spawn[0]][w.spawn[1] - 1] = w.tiles[w.spawn[0]][w.spawn[1] - 1].copy()
+  #w.tiles[w.spawn[0]][w.spawn[1] - 1].tileType = 3
+  #w.tiles[w.spawn[0]][w.spawn[1] - 1].isActive = True
+  #w.tiles[w.spawn[0]][w.spawn[1] - 1].isLighted = True
+  #w.tiles[w.spawn[0]][w.spawn[1] - 1].frameX = 18
+  #w.tiles[w.spawn[0]][w.spawn[1] - 1].frameY = 0
+  #w.tiles[w.spawn[0]][w.spawn[1] - 1].wall = 0
+  #w.tiles[w.spawn[0]][w.spawn[1] - 1].liquid = 0
+  #w.tiles[w.spawn[0]][w.spawn[1] - 1].isLava = False
   
   w.worldSurface = 300
   w.rockLayer = 400

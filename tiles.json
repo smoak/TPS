@@ -70,27 +70,27 @@
 	"drops": [ {"itemType": 105, "amount": 1, "chance": 100.0 } ]
   },
   {
-    "tileName": "Unknown37",
+    "tileName": "Meteorite",
 	"tileType": 37,
 	"drops": [ {"itemType": 116, "amount": 1, "chance": 100.0 } ]
   },
   {
-    "tileName": "Unknown38",
+    "tileName": "Gray Brick",
 	"tileType": 38,
 	"drops": [ {"itemType": 129, "amount": 1, "chance": 100.0 } ]
   },
   {
-    "tileName": "Unknown39",
+    "tileName": "Red Brick",
 	"tileType": 39,
 	"drops": [ {"itemType": 131, "amount": 1, "chance": 100.0 } ]
   },
   {
-    "tileName": "Unknown40",
+    "tileName": "Clay",
 	"tileType": 40,
 	"drops": [ {"itemType": 133, "amount": 1, "chance": 100.0 } ]
   },
   {
-    "tileName": "Unknown41",
+    "tileName": "Blue Brick",
 	"tileType": 41,
 	"drops": [ {"itemType": 134, "amount": 1, "chance": 100.0 } ]
   }
