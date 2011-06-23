@@ -72,9 +72,6 @@ class MessageHandlerService:
     chatText = "Player " + connection.player.name + " has connected!"
     log.debug(chatText)
     self.__sendPlayerDataMessageFor(connection)
-#    cons = self.connectionManager.getConnectionList()
-#    cons.remove(connection)
-#    self.messageSender.sendChatMessageFromServer(chatText, (255,0,0), cons)
 
   def __ensureCorrectClientId(self, clientIdRecvd, connection):
     result = True
@@ -375,8 +372,6 @@ class MessageHandlerService:
         for i in range(len(self.server.world.items)):
           item = self.server.world.items[i]
           if item.active and item.collidesWithPlayer(connection.player):
-            itemInfoMessage = self.__buildItemInfoMessage(i, item.position[0], item.position[1], item.velocity[0], item.velocity[1], item.stackSize, item.itemName)
-            self.messageSender.sendMessageToAllClients(itemInfoMessage)
             itemOwnerInfoMsg = self.__buildItemOwnerInfoMessage(i, connection.clientNumber)
             self.messageSender.sendMessageToAllClients(itemOwnerInfoMsg)
     except Exception as ex:
@@ -548,6 +543,58 @@ class MessageHandlerService:
     response.appendInt16(projectileIdentity)
     response.appendByte(owner)
     self.messageSender.sendMessageToOtherClients(response, connection)
+    
+  def __processTileSquareMessage(self, message, connection):
+    num9, num10, num11 = struct.unpack('<hii', message[1:11])
+    num = 11
+    for j in range(num10, num10 + num9):
+      for k in range(num11, num11 + num9):
+        tileFlags = struct.unpack('<B', message[num])[0]
+        num += 1
+        active = self.server.world.tiles[j][k].isActive
+        self.server.world.tiles[j][k] = self.server.world.tiles[j][k].copy()
+        self.server.world.tiles[j][k].isActive = ((tileFlags and 1) == 1)
+        self.server.world.tiles[j][k].isLighted = ((tileFlags and 2) == 2)
+        if ((tileFlags and 4) == 4):
+          self.server.world.tiles[j][k].wall = 1
+        else:
+          self.server.world.tiles[j][k].wall = 0
+        if ((tileFlags and 8) == 8):
+          self.server.world.tiles[j][k].liquid = 1
+        else:
+          self.server.world.tiles[j][k].liquid = 0
+        if self.server.world.tiles[j][k].isActive:
+          tileType = self.server.world.tiles[j][k].tileType
+          self.server.world.tiles[j][k].tileType = struct.unpack('<B', message[num])[0]
+          num += 1
+          if self.server.world.tiles[j][k].isImportant():
+            self.server.world.tiles[j][k].frameX = struct.unpack('<h', message[num:num+2])[0]
+            num += 2
+            self.server.world.tiles[j][k].frameY = struct.unpack('<h', message[num:num+2])[0]
+            num += 2
+          else:
+            if not active or self.server.world.tiles[j][k].tileType != tileType:
+              self.server.world.tiles[j][k].frameX = -1
+              self.server.world.tiles[j][k].frameY = -1
+        if self.server.world.tiles[j][k].wall > 0:
+          self.server.world.tiles[j][k].wall = struct.unpack('<B', message[num])[0]
+          num += 1
+        if self.server.world.tiles[j][k].liquid > 0:
+          self.server.world.tiles[j][k].liquid = struct.unpack('<B', message[num])[0]
+          num += 1
+          self.server.world.tiles[j][k].isLava = struct.unpack('<?', message[num])[0]
+          num += 1
+    self.server.world.rangeFrame(num10, num11, num10 + num9, num11 + num9)
+    response = Message(MessageType.TileSquare)
+    response.appendRaw(messsage[1:])
+    self.messageSender.sendMessageToOtherClients(response, connection)
+    #response.appendInt16(num9)
+    #response.appentInt(num10)
+    #response.appendInt(num11)
+    
+        
+          
+    
 
   def processMessage(self, message, connection):
     try:
@@ -593,6 +640,8 @@ class MessageHandlerService:
         self.__processProjectileMessage(message, connection)
       elif message.messageType == MessageType.ProjectileOwnerInfo:
         self.__processProjectileOwnerInfoMessage(message, connection)
+      elif message.messageType == MessageType.TileSquare:
+        self.__processTileSquareMessage(message, connection)
       else:
         log.warning("Need to implement message type: " + str(message.messageType))
     except Exception as ex:

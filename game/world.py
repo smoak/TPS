@@ -5,6 +5,7 @@ from util.math import *
 import game.tile
 from game.item import *
 from util.item import ItemGenerator
+from game.chest import Chest
 
 log = logging.getLogger()
 
@@ -45,7 +46,9 @@ class World:
     self.items = []
     for i in range(200):
       self.items.append(Item("Empty", 1))
+    self.chests = []
     self.npcs = []
+    self.players = []
     self.waterLine = 0
     self.lavaLine = 0
 
@@ -234,12 +237,30 @@ class World:
     pass
 
   def destroyChest(self, x, y):
+    chest = None
+    
+    # Find the chest entry with x and y coordinate
+    for c in self.chests:
+      if c.x == x and c.y == y:
+        chest = c
+        break
+        
+    if chest:
+      if chest.hasItems():
+        return False
+      # no items in the chest so remove it
+      self.chests.remove(chest)
+        
     return True
 
   def emptyTile(x, y, ignoreTiles = False):
     tile = self.tiles[x][y]
     if tile.isActive and not ignoreTiles:
       return False
+    else:
+      for p in self.players:
+        if p.active:
+          pass
     return True
     
   def getNextItemNum(self):
@@ -268,12 +289,14 @@ class World:
           if tileType == 24 and random.randint(0, 13) == 0:
             tile.isActive = True
             tile.tileType = 32
+            self.tiles[x][y] = tile
             self.squareTileFrame((x, y), True)
           else:
             if self.tiles[x][y].tileType == 78:
               tile.isActive = True
               tile.tileType = tileType
               tile.frameX = random.randint(0, 2) * 18 + 108
+              self.tiles[x][y] = tile
             else:
               if self.tiles[x][y].wall == 0:
                 if self.tiles[x][y + 1].wall == 0:
@@ -281,6 +304,7 @@ class World:
                     tile.isActive = True
                     tile.tileType = tileType
                     tile.frameX = 144
+                    self.tiles[x][y] = tile
                   else:
                     if random.randint(0, 35) == 0:
                       tile.isActive = True
@@ -290,22 +314,26 @@ class World:
                       tile.isActive = True
                       tile.tileType = tileType
                       tile.frameX = random.randint(0, 6) * 18
+                    self.tiles[x][y] = tile
       elif tileType == 61:
         if y + 1 < self.height and self.tiles[x][y + 1].isActive and self.tiles[x][y + 1].tileType == 60:
           if random.randint(0,10) == 0 and y > self.dirtLayer:
             tile.isActive = True
             tile.tileType = 69
+            self.tiles[x][y] = tile
             self.squareTileFrame((x,y), True)
           else:
             if random.randint(0, 15) == 0 and y > self.dirtLayer:
               tile.isActive = True
               tile.tileType = tileType
               tile.frameX = 144
+              self.tiles[x][y] = tile
             else:
               if random.randint(0, 1000) == 0 and y > self.dirtLayer:
                 tile.isActive = True
                 tile.tileType = tileType
                 tile.frameX = 162
+                self.tiles[x][y] = tile
               else:
                 tile.isActive = True
                 tile.tileType = tileType
@@ -313,25 +341,411 @@ class World:
                   tile.frameX = random.randint(0, 8) * 18
                 else:
                   tile.frameX = random.randint(0, 6) * 18
+                self.tiles[x][y] = tile
       elif tileType == 71:
         if y + 1 < self.height and self.tiles[x][y + 1].isActive and self.tiles[x][y + 1].tileType == 70:
           tile.isActive = True
           tile.tileType = tileType
           tile.frameX = random.randint(0, 5) * 18
+          self.tiles[x][y] = tile
       elif tileType == 4:
         if (self.tiles[x - 1][y].isActive and (self.tiles[x - 1][y].isTileSolid() or (self.tiles[x - 1][y].tileType == 5 and self.tiles[x - 1][y - 1].tileType == 5 and self.tiles[x - 1][y + 1].tileType == 5))) or (self.tiles[x + 1][y].isActive and (self.tiles[x + 1][y].isTileSolid() or (self.tiles[x + 1][y].tileType == 5 and self.tiles[x + 1][y - 1].tileType == 5 and self.tiles[x + 1][y + 1].tileType == 5))) or (self.tiles[x][y + 1].isActive and self.tiles[x][y + 1].isTileSolid()):
           tile.isActive = True
           tile.tileType = tileType
+          self.tiles[x][y] = tile
           self.squareTileFrame((x, y), True)
       elif tileType == 10:
-        pass
+        if not self.tiles[x][y - 1].isActive and not self.tiles[x][y - 2].isActive and self.tiles[x][y - 3].isActive and self.tiles[x][y - 3].isTileSolid():
+          self.placeDoor(x, y - 1, tileType)
+          self.squareTileFrame((x, y), True)
+        else:
+          if self.tiles[x][y + 1].isActive or self.tiles[x][y + 2].isActive or not self.tiles[x][y + 3].isActive or self.tiles[x][y + 3].isTileSolid():
+            return
+          self.placeDoor(x, y + 1, tileType)
+          self.squareTileFrame((x, y), True)
       elif tileType in [34, 35, 36]:
         self.place3x3(x, y, tileType)
         self.squareTileFrame((x, y), True)
+      elif tileType in [13, 33, 49, 50, 78]:
+        self.placeOnTable1x1(x, y, tileType)
+        self.squareTileFrame((x, y), True)
+      elif tileType in [14, 26]:
+        self.place3x2(x, y, tileType)
+        self.squareTileFrame((x, y), True)
+      elif tileType == 20:
+        if self.tiles[x][y + 1].isActive and self.tiles[x][y + 1].tileType == 2:
+          self.place1x2(x, y, tileType)
+          self.squareTileFrame((x, y), True)
+      elif tileType == 15:
+        self.place1x2(x, y, tileType)
+        self.squareTileFrame((x,y), True)
+      elif tileType in [16, 18, 29]:
+        self.place2x1(x, y, tileType)
+        self.squareTileFrame((x, y), True)
+      elif tileType in [17, 77]:
+        self.place3x2(x, y, tileType)
+        self.squareTileFrame((x, y), True)
+      elif tileType == 21:
+        self.placeChest(x, y, tileType)
+        self.squareTileFrame((x, y), True)
+      elif tileType == 27:
+        self.placeSunflower(x, y, 27)
+        self.squareTileFrame((x, y), True)
+      elif tileType == 28:
+        self.placePot(x, y, 28)
+        self.squareTileFrame((x, y), True)
+      elif tileType == 42:
+        self.place1x2Top(x, y, tileType)
+        self.squareTileFrame((x, y), True)
+      elif tileType == 55:
+        self.placeSign(x, y, tileType)
+      elif tileType == 79:
+        direction = 1
+        if plr > -1:
+          direction = self.players[plr].direction
+        self.place4x2(x, y, tileType, direction)
       else:
         tile.isActive = True
         tile.tileType = tileType
-    self.tiles[x][y] = tile
+        self.tiles[x][y] = tile
+        
+  def createChest(self, x, y):
+    for c in self.chests:
+      if c.x == x and c.y == y:
+        return -1
+    if len(self.chests) < 1000:
+      c = Chest()
+      c.x = x
+      c.y = y
+      self.chests.append(c)
+      # return new index of the chest
+      return len(self.chests) - 1
+    
+    return -1
+    
+  def place1x2(self, x, y, tileType):
+    frameX = 0
+    if tileType == 20:
+      frameX = random.randint(0, 3) * 18
+    if self.tiles[x][y + 1].isActive and self.tiles[x][y + 1].isTileSolid() and not self.tiles[x][y - 1].isActive:
+      self.tiles[x][y - 1] = self.tiles[x][y - 1].copy()
+      self.tiles[x][y - 1].isActive = True
+      self.tiles[x][y - 1].frameY = 0
+      self.tiles[x][y - 1].frameX = frameX
+      self.tiles[x][y - 1].tileType = tileType
+      
+      self.tiles[x][y] = self.tiles[x][y].copy()
+      self.tiles[x][y].frameY = 18
+      self.tiles[x][y].frameX = frameX
+      self.tiles[x][y].tileType = tileType
+			
+  def place2x1(self, x, y, tileType):
+    flag = False
+    if tileType != 29 and self.tiles[x][y + 1].isActive and self.tiles[x + 1][y + 1].isActive and self.tiles[x][y + 1].isTileSolid() and self.tiles[x + 1][y + 1].isTileSolid() and not self.tiles[x][y].isActive and not self.tiles[x + 1][y].isActive:
+      flag = True
+    else:
+      if tileType == 29 and self.tiles[x][y + 1].isActive and self.tiles[x + 1][y + 1].isActive and self.tiles[x][y + 1].isTileTable() and self.tiles[x + 1][y + 1].isTileTabale() and not self.tiles[x][y].isActive and not self.tiles[x + 1][y].isActive:
+        flag = True
+    if flag:
+      self.tiles[x][y] = self.tiles[x][y].copy()
+      self.tiles[x][y].isActive = True
+      self.tiles[x][y].frameY = 0
+      self.tiles[x][y].frameX = 0
+      self.tiles[x][y].tileType = tileType
+      
+      self.tiles[x + 1][y] = self.tiles[x + 1][y].copy()
+      self.tiles[x + 1][y].isActive = True
+      self.tiles[x + 1][y].frameY = 0
+      self.tiles[x + 1][y].frameX = 18
+      self.tiles[x + 1][y].tileType = tileType
+    
+  def place3x2(self, x, y, tileType):
+    if x >= 5 and x < self.width - 5 and y >= 5 and y <= self.height - 5:
+      flag = True
+      for i in range(x - 1, x + 2):
+        for j in range(y - 1, y + 1):
+          if self.tiles[i][j].isActive:
+            flag = False
+            break
+        if not self.tiles[i][y + 1].isActive or not self.tiles[i][y + 1].isTileSolid():
+          flag = False
+          break
+      if flag:
+        self.tiles[x - 1][y - 1] = self.tiles[x - 1][y - 1].copy()
+        self.tiles[x - 1][y - 1].frameY = 0
+        self.tiles[x - 1][y - 1].frameX = 0
+        self.tiles[x - 1][y - 1].tileType = tileType
+        
+        self.tiles[x][y - 1] = self.tiles[x][y - 1].copy()
+        self.tiles[x][y - 1].isActive = True
+        self.tiles[x][y - 1].frameY = 0
+        self.tiles[x][y - 1].frameX = 18
+        self.tiles[x][y - 1].tileType = tileType
+        
+        self.tiles[x + 1][y - 1] = self.tiles[x + 1][y - 1].copy()
+        self.tiles[x + 1][y - 1].isActive = True
+        self.tiles[x + 1][y - 1].frameY = 0
+        self.tiles[x + 1][y - 1].frameX = 36
+        self.tiles[x + 1][y - 1].tileType = tileType
+        
+        self.tiles[x - 1][y] = self.tiles[x - 1][y].copy()
+        self.tiles[x - 1][y].isActive = True
+        self.tiles[x - 1][y].frameY = 18
+        self.tiles[x - 1][y].frameX = 0
+        self.tiles[x - 1][y].tileType = tileType
+        
+        self.tiles[x][y] = self.tiles[x][y].copy()
+        self.tiles[x][y].isActive = True
+        self.tiles[x][y].frameY = 18
+        self.tiles[x][y].frameX = 18
+        self.tiles[x][y].tileType = tileType
+        
+        self.tiles[x + 1][y] = self.tiles[x + 1][y].copy()
+        self.tiles[x + 1][y].isActive = True
+        self.tiles[x + 1][y].frameY = 18
+        self.tiles[x + 1][y].frameX = 36
+        self.tiles[x + 1][y].tileType = tileType
+    
+  def placeChest(self, x, y, tileType):
+    flag = True
+    num = -1
+    for i in range(x, x + 2):
+      for j in range(y - 1, y + 1):
+        if self.tiles[i][j].isActive:
+          flag = False
+          break
+        if self.tiles[i][j].isLava:
+          flag = False
+          break
+      if not self.tiles[i][y + 1].isActive or not self.tiles[i][y + 1].isTileSolid():
+        flag = False
+        break
+    if flag:
+      num = self.createChest(x, y - 1)
+      if num == -1:
+        flag = False
+    if flag:
+      self.tiles[x][y - 1] = self.tiles[x][y - 1].copy()
+      self.tiles[x][y - 1].isActive = True
+      self.tiles[x][y - 1].frameY = 0
+      self.tiles[x][y - 1].frameX = 0
+      self.tiles[x][y - 1].tileType = tileType
+      
+      self.tiles[x + 1][y - 1] = self.tiles[x + 1][y - 1].copy()
+      self.tiles[x + 1][y - 1].isActive = True
+      self.tiles[x + 1][y - 1].frameY = 0
+      self.tiles[x + 1][y - 1].frameX = 18
+      self.tiles[x + 1][y - 1].tileType = tileType
+      
+      self.tiles[x][y] = self.tiles[x][y].copy()
+      self.tiles[x][y].isActive = True
+      self.tiles[x][y].frameY = 18
+      self.tiles[x][y].frameX = 0
+      self.tiles[x][y].tileType = tileType
+      
+      self.tiles[x + 1][y] = self.tiles[x + 1][y].copy()
+      self.tiles[x + 1][y].isActive = True
+      self.tiles[x + 1][y].frameY = 18
+      self.tiles[x + 1][y].frameX = 18
+      self.tiles[x + 1][y].tileType = tileType
+    
+  def placeSunflower(self, x, y, tileType = 27):
+    if y <= self.dirtLayer - 1.0:
+      flag = True
+      for i in range(x, x + 2):
+        for j in range(y - 3, y + 1):
+          if self.tiles[i][j].isActive or self.tiles[i][j].wall > 0:
+            flag = False
+            break
+        if not self.tiles[i][y + 1].isActive or self.tiles[i][y + 1].tileType != 2:
+          flag = False
+          break
+      if flag:
+        for i in range(2):
+          for j in range(-3, 1):
+            frameX = i * 18 + random.randint(0, 3) * 36
+            frameY = (j + 3) * 18
+            self.tiles[x + i][y + j] = self.tiles[x + i][y + j].copy()
+            self.tiles[x + i][y + j].isActive = True
+            self.tiles[x + i][y + j].frameX = frameX
+            self.tiles[x + i][y + j].frameY = frameY
+            self.tiles[x + i][y + j].tileType = tileType
+    
+  def place4x2(self, x, y, tileType, direction = -1):
+    if x >= 5 and x <= self.width - 5 and y >= 5 and y <= self.height - 5:
+      flag = True
+      for i in range(x - 1, x + 3):
+        for j in range(y - 1, y + 1):
+          if self.tiles[i][j].isActive:
+            flag = False
+            break
+        if not self.tiles[i][y + 1].isActive or not self.tiles[i][y + 1].isTileSolid():
+          flag = False
+          break
+      frameX = 0
+      if direction == 1:
+        frameX = 72
+      if flag:
+        self.tiles[x - 1][y - 1] = self.tiles[x - 1][y - 1].copy()
+        self.tiles[x - 1][y - 1].isActive = True
+        self.tiles[x - 1][y - 1].frameY = 0
+        self.tiles[x - 1][y - 1].frameX = frameX
+        self.tiles[x - 1][y - 1].tileType = tileType
+        
+        self.tiles[x][y - 1] = self.tiles[x][y - 1].copy()
+        self.tiles[x][y - 1].isActive = True
+        self.tiles[x][y - 1].frameY = 0
+        self.tiles[x][y - 1].frameX = 18 + frameX
+        self.tiles[x][y - 1].tileType = tileType
+        
+        self.tiles[x + 1][y - 1] = self.tiles[x + 1][y - 1].copy()
+        self.tiles[x + 1][y - 1].isActive = True
+        self.tiles[x + 1][y - 1].frameY = 0
+        self.tiles[x + 1][y - 1].frameX = 36 + frameX
+        self.tiles[x + 1][y - 1].tileType = tileType
+        
+        self.tiles[x + 2][y - 1] = self.tiles[x + 2][y - 1].copy()
+        self.tiles[x + 2][y - 1].isActive = True
+        self.tiles[x + 2][y - 1].frameY = 0
+        self.tiles[x + 2][y - 1].frameX = 54 + frameX
+        self.tiles[x + 2][y - 1].tileType = tileType
+        
+        self.tiles[x - 1][y] = self.tiles[x - 1][y].copy()
+        self.tiles[x - 1][y].isActive = True
+        self.tiles[x - 1][y].frameY = 18
+        self.tiles[x - 1][y].frameX = frameX
+        self.tiles[x - 1][y].tileType = tileType
+        
+        self.tiles[x][y] = self.tiles[x][y].copy()
+        self.tiles[x][y].isActive = True
+        self.tiles[x][y].frameY = 18
+        self.tiles[x][y].frameX = 18 + frameX
+        self.tiles[x][y].tileType = tileType
+        
+        self.tiles[x + 1][y] = self.tiles[x + 1][y].copy()
+        self.tiles[x + 1][y].isActive = True
+        self.tiles[x + 1][y].frameY = 18
+        self.tiles[x + 1][y].frameX = 36 + frameX
+        self.tiles[x + 1][y].tileType = tileType
+        
+        self.tiles[x + 2][y] = self.tiles[x + 2][y].copy()
+        self.tiles[x + 2][y].isActive = True
+        self.tiles[x + 2][y].frameY = 18
+        self.tiles[x + 2][y].frameX = 54 + frameX
+        self.tiles[x + 2][y].tileType = tileType
+    
+  def rangeFrame(self, startX, startY, endX, endY):
+    num = endX + 1
+    num2 = endY + 1
+    for i in range(startX - 1, num + 1):
+      for j in range(startY - 1, num2 + 1):
+        self.tileFrame(i, j, False, False)
+    
+  def placeSign(self, x, y, tileType):
+    num = x - 2
+    num2 = x + 3
+    num3 = y - 2
+    num4 = y + 3
+    if num < 0 or num2 > self.width or num3 < 0 or num4 > self.height:
+      return
+    num5 = x
+    num6 = y
+    num7 = 0
+    if self.tiles[x][y + 1].isActive and self.tiles[x][y + 1].isTileSolid() and self.tiles[x + 1][y + 1].isActive and self.tiles[x + 1][y + 1].isTileSolid():
+      num6 -= 1
+    else: 
+      if self.tiles[x][y - 1].isActive and self.tiles[x][y - 1].isTileSolid() and not self.tiles[x][y - 1].isTileSolidTop() and self.tiles[x + 1][y - 1].isActive and self.tiles[x + 1][y - 1].isTileSolid() and not self.tiles[x + 1][y - 1].isTileSolidTop():
+        num7 = 1
+      else:
+        if self.tiles[x - 1][y].isActive and self.tiles[x - 1][y].isTileSolid() and not self.tiles[x - 1][y].isTileSolidTop() and self.tiles[x - 1][y + 1].isActive and self.tiles[x - 1][y + 1].isTileSolid() and not self.tiles[x - 1][y + 1].isTileSolidTop():
+          num7 = 2
+        else:
+          if not self.tiles[x + 1][y].isActive or not self.tiles[x + 1][y].isTileSolid() or self.tiles[x + 1][y].isTileSolidTop() or not self.tiles[x + 1][y + 1].isActive or not self.tiles[x + 1][y + 1].isTileSolid() or self.tiles[x + 1][y + 1].isTileSolidTop():
+            return
+          num5 -=1
+          num7 = 3
+    if self.tiles[num5][num6].isActive or self.tiles[num5 + 1][num6].isActive or self.tiles[num5][num6 + 1].isActive or self.tiles[num5 + 1][num6 + 1].isActive:
+      return
+    else:
+      num8 = 36 * num7
+      for k in range(2):
+        for l in range(2):
+          self.tiles[num5 + k][num6 + l] = self.tiles[num5 + k][num6 + l].copy()
+          self.tiles[num5 + k][num6 + l].isActive = True
+          self.tiles[num5 + k][num6 + l].tileType = tileType
+          self.tiles[num5 + k][num6 + l].frameX = num8 + 18 * k
+          self.tiles[num5 + k][num6 + l].frameY = 18 * l
+        
+  def place1x2Top(self, x, y, tileType):
+    if self.tiles[x][y - 1].isActive and self.tiles[x][y - 1].isTileSolid() and not self.tiles[x][y - 1].isTileSolidTop() and not self.tiles[x][y + 1].isActive:
+      self.tiles[x][y] = self.tiles[x][y].copy()
+      self.tiles[x][y].isActive = True
+      self.tiles[x][y].frameY = 0
+      self.tiles[x][y].frameX = 0
+      self.tiles[x][y].tileType = tileType
+      
+      self.tiles[x][y + 1] = self.tiles[x][y + 1].copy()
+      self.tiles[x][y + 1].isActive = True
+      self.tiles[x][y + 1].frameY = 18
+      self.tiles[x][y + 1].frameX = 0
+      self.tiles[x][y + 1].tileType = tileType
+    
+  def placePot(self, x, y, tileType):
+    flag = True
+    for i in range(x, x + 2):
+      for j in range(y - 1, y + 1):
+        if self.tiles[i][j].isActive:
+          flag = False
+          break
+      if not self.tiles[i][y + 1].isActive or not self.tiles[i][y + 1].isTileSolid():
+        flag = False
+        break
+    if flag:
+      for i in range(2):
+        for j in range(-1, 1):
+          num = i * 18 + random.randint(0, 3) * 36
+          num2 = (j + 1) * 18
+          self.tiles[x + i][y + j] = self.tiles[x + i][y + j].copy()
+          self.tiles[x + i][y + j].isActive = True
+          self.tiles[x + i][y + j].frameX = num
+          self.tiles[x + i][y + j].frameY = num2
+          self.tiles[x + i][y + j].tileType = tileType
+    
+  def placeDoor(self, x, y, tileType):
+    if self.tiles[x][y - 2].isActive and self.tiles[x][y - 2].isTileSolid() and self.tiles[x][y + 2].isActive and self.tiles[x][y + 2].isTileSolid():
+      self.tiles[x][y - 1] = self.tiles[x][y - 1].copy()
+      self.tiles[x][y - 1].isActive = True
+      self.tiles[x][y - 1].tileType = 10
+      self.tiles[x][y - 1].frameY = 0
+      self.tiles[x][y - 1].frameX = random.randint(0, 3) * 18
+      
+      self.tiles[x][y] = self.tiles[x][y].copy()
+      self.tiles[x][y].isActive = True
+      self.tiles[x][y].tileType = 10
+      self.tiles[x][y].frameY = 18
+      self.tiles[x][y].frameX = random.randint(0, 3) * 18
+      
+      self.tiles[x][y + 1] = self.tiles[x][y + 1].copy()
+      self.tiles[x][y + 1].isActive = True
+      self.tiles[x][y + 1].tileType = 10
+      self.tiles[x][y + 1].frameY = 36
+      self.tiles[x][y + 1].frameX = random.randint(0, 3) * 18
+    
+  def placeOnTable1x1(self, x, y, tileType):
+    flag = False
+    if not self.tiles[x][y].isActive and self.tiles[x][y + 1].isActive and self.tiles[x][y + 1].isTileTable():
+      flag = True
+    if tileType == 78:
+      if not self.tiles[x][y].isActive and self.tiles[x][y + 1].isActive and self.tiles[x][y + 1].isTileSolid():
+        flag = True
+    if flag:
+      self.tiles[x][y] = self.tiles[x][y].copy()
+      self.tiles[x][y].isActive = True
+      self.tiles[x][y].frameX = 0
+      self.tiles[x][y].frameY = 0
+      self.tiles[x][y].tileType = tileType
+      if tileType == 50:
+        self.tiles[x][y].frameX = random.randint(0, 5) * 18
     
   def place3x3(self, x, y, tileType):
     flag = True
