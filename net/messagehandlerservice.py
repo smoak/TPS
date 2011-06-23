@@ -317,8 +317,14 @@ class MessageHandlerService:
     self.__sendMessageToOtherClients(response, connection)
  #     if connection.state == 3:
   #      connection.state = 10
-    self.__greetPlayer(connection)
     self.messageSender.syncPlayers()
+    self.__greetPlayer(connection)
+    cons = self.connectionManager.getConnectionList()
+    newCons = []
+    for c in cons:
+      if c.authed and c.clientNumber != connection.clientNumber:
+        newCons.append(c)
+    self.messageSender.sendChatMessageFromServer("%s has joined!" % (connection.player.name), (255, 255, 15), newCons)
 
   def __sendMessageToOtherClients(self, message, clientToIgnore):
     cons = self.connectionManager.getConnectionList()
@@ -426,14 +432,15 @@ class MessageHandlerService:
     r,g,b = struct.unpack('<BBB', message.buf[2:5])
     text = message.buf[5:]
     if text.startswith("/item "):
-      regex = r"/item ([A-Za-z]+)\s*([A-Za-z]*)\s*(\d*)"
+      regex = r"/item ([A-Za-z']+)\s*([A-Za-z']*)\s*([A-Za-z']*)\s*([A-Za-z']*)\s*(\d*)"
       match = re.match(regex, text)
       itemName = match.group(1).encode('ascii', 'ignore')
-      if match.group(2) != '':
-        itemName = itemName + " " + match.group(2).encode('ascii', 'ignore')
+      for i in range(2, 5):
+        if match.group(i) != '':
+          itemName = itemName + " " + match.group(i).encode('ascii', 'ignore')
       amount = 1
-      if match.group(3) != '':
-        amount = clamp(1, 255, int(match.group(3)))
+      if match.group(5) != '':
+        amount = clamp(int(match.group(5)), 1, 255)
       item = self.itemService.getItemByName(itemName)
       if not item:
         self.messageSender.sendChatMessageFromServer("Unknown item: " + itemName, (255, 255, 15), [connection])
