@@ -586,15 +586,12 @@ class MessageHandlerService:
           num += 1
     self.server.world.rangeFrame(num10, num11, num10 + num9, num11 + num9)
     response = Message(MessageType.TileSquare)
-    response.appendRaw(messsage[1:])
+    message = message[1:]
+    response.appendRaw(messsage)
     self.messageSender.sendMessageToOtherClients(response, connection)
     #response.appendInt16(num9)
     #response.appentInt(num10)
-    #response.appendInt(num11)
-    
-        
-          
-    
+    #response.appendInt(num11)  
 
   def processMessage(self, message, connection):
     try:
