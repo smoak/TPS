@@ -37,3 +37,14 @@ class MessageBuilder(object):
     message.appendByte(0) # World Id
     message.appendRaw(world.name)
     return message
+
+  def buildItemInfoMessage(self, itemNum, posX, posY, velX, velY, stack2, itemName):
+    message = Message(MessageType.ItemInfo)
+    message.appendInt16(itemNum)
+    message.appendFloat(posX)
+    message.appendFloat(posY)
+    message.appendFloat(velX)
+    message.appendFloat(velY)
+    message.appendByte(stack2)
+    message.appendRaw(itemName)
+    return message
