@@ -45,7 +45,11 @@ def debug_world():
   # weird background tileType 28
   # piggy bank tileType 29
   # wood tileType 30
+  # weird half background thing tileType 31
+  # corruption stuff tileType 32
   # weird candle background thing tileType 33
+  # blank? tileType 34
+  # blank? crashes client tileType 35
   # meteorite tileType 37
   # gray brick tileType 38
   # red brick tileType 39
@@ -57,7 +61,7 @@ def debug_world():
     for y in range(200, w.height):
       if x > 100:
         w.tiles[x][y] = Tile()
-        w.tiles[x][y].tileType = 29
+        w.tiles[x][y].tileType = 36
         w.tiles[x][y].isActive = True
         w.tiles[x][y].isLighted = True
         w.tiles[x][y].frameX = -1

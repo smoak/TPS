@@ -14,7 +14,7 @@ from messagesender import *
 from util.tasks import PeriodicExecutor
 
 HEADER_FORMAT = '<i' # little endian integer
-PROTOCOL_VERSION = 9
+PROTOCOL_VERSION = 12
 SERVER_VERSION = "Terraria" + str(PROTOCOL_VERSION)
 MESSAGE_TYPE_FORMAT = '<B' # little endian byte (char)
 

@@ -67,9 +67,9 @@ class MessageHandlerService:
     connection.player.underShirtColor = colors[4]
     connection.player.pantsColor = colors[5]
     connection.player.shoeColor = colors[6]
-
+    connection.player.hardCore = struct.unpack('<?', message.buf[24])[0]
     # player name is the remaining bytes (starting at index 24)
-    connection.player.name = message.buf[24:]
+    connection.player.name = message.buf[25:]
     chatText = "Player " + connection.player.name + " has connected!"
     log.debug(chatText)
     self.__sendPlayerDataMessageFor(connection)
@@ -264,6 +264,7 @@ class MessageHandlerService:
       playerData.appendByte(connection.player.pantsColor[i])
     for i in range(3):
       playerData.appendByte(connection.player.shoeColor[i])
+    playerData.appendByte(connection.player.hardCore)
     playerData.appendRaw(connection.player.name)
     self.__sendMessageToOtherClients(playerData, connection)
 
@@ -306,23 +307,24 @@ class MessageHandlerService:
     spawnX, spawnY = struct.unpack('<ii', message.buf[2:10])
     connection.player.spawn = (spawnX, spawnY)
     connection.player.active = True
-#    if connection.state >= 3:
+    if connection.state >= 3:
       # we have to send spawn data to the other clients and NOT this one...
-    response = Message(MessageType.Spawn)
-    response.appendByte(clientNumber)
-    response.appendInt(spawnX)
-    response.appendInt(spawnY)
-    self.__sendMessageToOtherClients(response, connection)
- #     if connection.state == 3:
-  #      connection.state = 10
-    self.messageSender.syncPlayers()
-    self.__greetPlayer(connection)
+      response = Message(MessageType.Spawn)
+      response.appendByte(clientNumber)
+      response.appendInt(spawnX)
+      response.appendInt(spawnY)
+      if connection.state == 3:
+        connection.state = 10
+        self.__greetPlayer(connection)
+        self.messageSender.syncPlayers()
+        self.__sendMessageToOtherClients(response, connection)
+      self.__sendMessageToOtherClients(response, connection)
     cons = self.connectionManager.getConnectionList()
     newCons = []
     for c in cons:
       if c.authed and c.clientNumber != connection.clientNumber:
         newCons.append(c)
-    self.messageSender.sendChatMessageFromServer("%s has joined!" % (connection.player.name), (255, 255, 15), newCons)
+    self.messageSender.sendChatMessageFromServer(connection.player.name + " has joined.", (255, 255, 15), newCons)
 
   def __sendMessageToOtherClients(self, message, clientToIgnore):
     cons = self.connectionManager.getConnectionList()
@@ -573,13 +575,27 @@ class MessageHandlerService:
           num += 1
     self.server.world.rangeFrame(num10, num11, num10 + num9, num11 + num9)
     response = Message(MessageType.TileSquare)
-    message = message[1:]
-    response.appendRaw(messsage)
+    response.appendRaw(messsage.buf[1:])
     self.messageSender.sendMessageToOtherClients(response, connection)
     #response.appendInt16(num9)
     #response.appentInt(num10)
     #response.appendInt(num11)  
 
+  def __processPlayerBallSwingMessage(self, message, connection):
+    response = Message(MessageType.PlayerBallSwing)
+    response.appendRaw(message.buf[1:])
+    self.messageSender.sendMessageToOtherClients(response, connection)
+    
+  def __processStrikePlayerMessage(self, message, connection):
+    clientNumber = struct.unpack('<B', message.buf[1])[0]
+    hitDirection = struct.unpack('<B', message.buf[2])[0] - 1
+    damage, isPvpDmg = struct.unpack('<h?', message.buf[3:6])
+    deathText = message.buf[6:]
+    connection.player.hurt(damage, hitDirection, isPvpDmg, True, deathText)
+    response = Message(MessageType.StrikePlayer)
+    response.appendRaw(message.buf[1:])
+    self.messageSender.sendMessageToOtherClients(response, connection)
+    
   def processMessage(self, message, connection):
     try:
       if not connection.authed and message.messageType != MessageType.ConnectionRequest and message.messageType != MessageType.PasswordResponse:
@@ -626,6 +642,10 @@ class MessageHandlerService:
         self.__processProjectileOwnerInfoMessage(message, connection)
       elif message.messageType == MessageType.TileSquare:
         self.__processTileSquareMessage(message, connection)
+      elif message.messageType == MessageType.PlayerBallSwing:
+        self.__processPlayerBallSwingMessage(message, connection)
+      elif message.messageType == MessageType.StrikePlayer:
+        self.__processStrikePlayerMessage(message, connection)
       else:
         log.warning("Need to implement message type: " + str(message.messageType))
     except Exception as ex:
