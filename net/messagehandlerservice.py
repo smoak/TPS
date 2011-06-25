@@ -15,10 +15,11 @@ log = logging.getLogger()
 
 class MessageHandlerService:
 
-  def __init__(self, server):
+  def __init__(self, server, messageSender):
     self.connectionManager = server.connectionManager
     self.server = server
-    self.messageSender = MessageSender(self.connectionManager)
+    self.messageSender = messageSender
+    self.messageBuilder = self.messageSender.messageBuilder
     self.itemService = self.server.world.itemGenerator.itemService
     
   def __sendDisconnect(self, connection, text):
@@ -151,7 +152,7 @@ class MessageHandlerService:
     for i in range(len(self.server.world.items)):
       item = self.server.world.items[i]
       if item.active:
-        itemInfoMessage = self.__buildItemInfoMessage(i, item.position[0], item.position[1], item.velocity[0], item.velocity[1], item.stackSize, item.itemName)
+        itemInfoMessage = self.messageBuilder.buildItemInfoMessage(i, item.position[0], item.position[1], item.velocity[0], item.velocity[1], item.stackSize, item.itemName)
         connection.socket.send(itemInfoMessage.create())
         itemOwnerInfoMsg = self.__buildItemOwnerInfoMessage(i, item.owner)
         connection.socket.send(itemOwnerInfoMsg.create())
@@ -401,7 +402,7 @@ class MessageHandlerService:
     item = None
     itemNum = None
     if tileType == 0:
-      (item, itemNum) = self.server.world.killTile((x,y), flag, False, False)
+      self.server.world.killTile((x,y), flag, False, False)
     elif tileType == 1:
       self.server.world.placeTile(x, y, newType, False, True, -1)
     elif tileType == 2:
@@ -409,7 +410,7 @@ class MessageHandlerService:
     elif tileType == 3:
       pass # place wall
     elif tileType == 4:
-      (item, itemNum) = self.server.world.killTile((x,y), flag, False, True)
+      self.server.world.killTile((x,y), flag, False, True)
     response = Message(MessageType.ManipulateTile)
     response.appendByte(tileType)
     response.appendInt(x)
@@ -418,9 +419,6 @@ class MessageHandlerService:
     self.messageSender.sendMessageToOtherClients(response, connection)
     if tileType == 1 and newType == 53:
       self.__sendTileSquare(connection, x, y, 1)
-    if item:
-      itemInfoMessage = self.__buildItemInfoMessage(itemNum, item.position[0], item.position[1], item.velocity[0], item.velocity[1], item.stackSize, item.itemName)
-      self.messageSender.sendMessageToAllClients(itemInfoMessage)
 
   def __processMessageMessage(self, message, connection):
     clientNumber = struct.unpack('<B', message.buf[1])[0]
@@ -442,7 +440,7 @@ class MessageHandlerService:
         return
       itemIndex = self.server.world.getNextItemNum()
       try:
-        itemMsg = self.__buildItemInfoMessage(itemIndex, connection.player.posX + 5, connection.player.posY, 0.19, -1.8, amount, itemName)
+        itemMsg = self.messageBuilder.buildItemInfoMessage(itemIndex, connection.player.posX + 5, connection.player.posY, 0.19, -1.8, amount, itemName)
       except Exception as ex:
         log.error(ex)
       item.setAmount(amount)
@@ -478,7 +476,7 @@ class MessageHandlerService:
     if itemName == "0":
       if itemNum < 200:
         self.server.world.items[itemNum].active = False
-        message = self.__buildItemInfoMessage(itemNum, posX, posY, velX, velY, stack2, itemName)
+        message = self.messageBuilder.buildItemInfoMessage(itemNum, posX, posY, velX, velY, stack2, itemName)
         self.messageSender.sendMessageToAllClients(message)
     else:
       flag = (itemNum == 200)
@@ -491,23 +489,12 @@ class MessageHandlerService:
       self.server.world.items[itemNum].velocity = (velX, velY)
       self.server.world.items[itemNum].active = True
       self.server.world.items[itemNum].owner = 255
-      message = self.__buildItemInfoMessage(itemNum, posX, posY, velX, velY, stack2, itemName)
+      message = self.messageBuilder.buildItemInfoMessage(itemNum, posX, posY, velX, velY, stack2, itemName)
       if flag:        
         self.messageSender.sendMessageToAllClients(message)
       else:
         self.messageSender.sendMessageToOtherClients(message, connection)
         
-  def __buildItemInfoMessage(self, itemNum, posX, posY, velX, velY, stack2, itemName):
-    message = Message(MessageType.ItemInfo)
-    message.appendInt16(itemNum)
-    message.appendFloat(posX)
-    message.appendFloat(posY)
-    message.appendFloat(velX)
-    message.appendFloat(velY)
-    message.appendByte(stack2)
-    message.appendRaw(itemName)
-    return message
-
   def __processItemOwnerInfoMessage(self, message, connection):
     itemNumber = struct.unpack('<h', message.buf[1:3])[0]
     owner = struct.unpack('<B', message.buf[3])[0]

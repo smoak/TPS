@@ -2,6 +2,7 @@ import logging, random
 
 from game.tile import *
 from util.math import *
+from common.events import EventHook, ItemCreatedEventArgs
 import game.tile
 from game.item import *
 from util.item import ItemGenerator
@@ -21,7 +22,7 @@ class MoonPhase:
   Seven = 6
   Eight = 7
 
-class World:
+class World(object):
 
   def __init__(self):
     self.itemGenerator = ItemGenerator()
@@ -52,6 +53,7 @@ class World:
     self.players = []
     self.waterLine = 0
     self.lavaLine = 0
+    self.onItemCreated = EventHook()
 
   def getSectionX(self, x):
     return x / 200
@@ -63,13 +65,13 @@ class World:
     x, y = coord[0], coord[1]
     newItem = None
     if x < 0 or y < 0 or x >= self.width or y >= self.height:
-      return None
+      return
     if self.tiles[x][y].isActive:
       if y >= 1 and self.tiles[x][y - 1].isActive and ((self.tiles[x][y - 1].tileType == 5 and self.tiles[x][y].tileType != 5) or (self.tiles[x][y - 1].tileType == 21 and self.tiles[x][y].tileType != 21) or (self.tiles[x][y - 1].tileType == 26 and self.tiles[x][y].tileType != 26) or (self.tiles[x][y - 1].tileType == 72 and self.tiles[x][y].tileType != 72) or (self.tiles[x][y - 1].tileType == 12 and self.tiles[x][y].tileType != 12)):
         if self.tiles[x][y - 1].tileType != 5:
-          return None
+          return
         if (self.tiles[x][y - 1].frameX != 66 or self.tiles[x][y - 1].frameY < 0 or self.tiles[x][y - 1].frameY > 44) and (self.tiles[x][y - 1].frameX != 88 or self.tiles[x][y - 1].frameY < 66 or self.tiles[x][y - 1].frameY > 110) and self.tiles[x][y - 1].frameY < 198:
-          return None
+          return
     if not effectOnly:
       tile = self.tiles[x][y]
       if tile.tileType in ([3,24]):
@@ -103,7 +105,7 @@ class World:
     if newItem:
       itemNum = self.getNextItemNum()
       self.items[itemNum] = newItem
-    return (newItem, itemNum)
+      self.onItemCreated.fire(eventArgs=ItemCreatedEventArgs(newItem, itemNum))
 
   def squareTileFrame(self, coord, resetFrame = True):
     x, y = coord[0], coord[1]

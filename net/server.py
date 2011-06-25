@@ -7,6 +7,7 @@ import time, random
 
 
 from connectioninfo import ConnectionInfo
+from connection import ConnectionManager
 from messagehandlerservice import MessageHandlerService
 from message import Message
 from messagesender import *
@@ -26,75 +27,6 @@ class NetworkState:
   Closed = 3
   Error = 4
 
-class ConnectionManager:
-
-  def __init__(self, world):
-    self.__connections = []
-    self.locker = thread.allocate_lock()
-    self.world = world
-
-  def connectionCount(self):
-    connectionCount = 0
-    self.locker.acquire()
-    connectionCount = len(self.__connections)
-    self.locker.release()
-    return connectionCount
-
-  def addConnection(self, connection):
-    self.locker.acquire()
-    self.__connections.append(connection)
-    self.locker.release()
-
-  def removeConnection(self, connection):
-    self.locker.acquire()
-    self.__connections.remove(connection)
-#    newCons = []
-#    for ci in self.__connections:
-#      if ci.socket != connection.socket:
-#        newCons.append(ci)
-#    self.__connections = newCons
-    connection.socket.shutdown(socket.SHUT_RDWR)
-    connection.socket.close()
-    self.locker.release()
-    connection.player.active = False
-
-  def getListOfSocketsForSelect(self):
-    result = []
-    self.locker.acquire()
-    for ci in self.__connections:
-      result.append(ci.socket)
-    self.locker.release()
-    return result
-
-  def getConnectionList(self):
-    result = []
-    self.locker.acquire()
-    result = self.__connections
-    self.locker.release()
-    return result
-
-  def findConnection(self, socket):
-    result = None
-    self.locker.acquire()
-    for ci in self.__connections:
-      if ci.socket == socket:
-        result = ci
-        break
-    self.locker.release()
-    return result
-
-  def getNewClientId(self):
-    clientId = 0
-    idList = []
-    self.locker.acquire()
-    # get a list of the clientIds
-    for ci in self.__connections:
-      idList.append(ci.clientNumber)      
-    self.locker.release()
-    # now we just want to find the next available id
-    while clientId in idList:
-      clientId += 1
-    return clientId
 
 class TerrariaServer:
 
@@ -105,10 +37,21 @@ class TerrariaServer:
     self.motd = "Welcome to the jungle! We got fun and games!"
     self.world = world
     self.networkState = NetworkState.Closed
-    self.connectionManager = ConnectionManager(self.world)
-    self.messageHandlerService = MessageHandlerService(self)
+    self.connectionManager = ConnectionManager()
     self.messageSender = MessageSender(self.connectionManager)
+    self.messageHandlerService = MessageHandlerService(self, self.messageSender)
     self.updateServerTask = PeriodicExecutor(60, self.__updateServer, ())
+    self.world.onItemCreated.addHandler(self.__itemCreatedEventHandler)
+
+  def __itemCreatedEventHandler(self, eventArgs):
+    """
+    Occurs when the world creates a new item (e.g. by destroying a tile)
+    """
+    item = eventArgs.item
+    itemNum = eventArgs.itemNumber
+    if item:
+      itemInfoMessage = self.messageSender.messageBuilder.buildItemInfoMessage(itemNum, item.position[0], item.position[1], item.velocity[0], item.velocity[1], item.stackSize, item.itemName)
+      self.messageSender.sendMessageToAllClients(itemInfoMessage)
 
   def __setupSocket(self):
     try:
