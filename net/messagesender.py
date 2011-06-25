@@ -28,7 +28,7 @@ class MessageSender(object):
   def sendPlayerDisconnectedToOtherClients(self, connection):
     self.__sendPlayerUpdateTwoMessageFor(connection)
     cons = self.connectionManager.getConnectionList()
-    self.sendChatMessageFromServer(connection.player.name + " has disconnected!", (255, 255, 255), cons)
+    self.sendChatMessageFromServer(connection.player.name + " has disconnected.", (255, 255, 255), cons)
 
   def sendChatMessageFromServer(self, text, color, clients):
     message = Message(MessageType.Message)
@@ -115,6 +115,7 @@ class MessageSender(object):
       playerData.appendByte(connection.player.pantsColor[i])
     for i in range(3):
       playerData.appendByte(connection.player.shoeColor[i])
+    playerData.appendByte(connection.player.hardCore)
     playerData.appendRaw(connection.player.name)
     self.sendMessageToOtherClients(playerData, connection)
 

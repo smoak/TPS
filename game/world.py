@@ -1,3 +1,7 @@
+"""
+ Fair warning, this file is a beast.
+"""
+
 import logging, random
 
 from game.tile import *
@@ -54,6 +58,8 @@ class World(object):
     self.waterLine = 0
     self.lavaLine = 0
     self.onItemCreated = EventHook()
+    self.shadowOrbSmashed = False
+    self.shadowOrbCount = 0
 
   def getSectionX(self, x):
     return x / 200
@@ -97,6 +103,7 @@ class World(object):
         self.tiles[x][y].isActive = False
         self.tiles[x][y].frameX = -1
         self.tiles[x][y].frameY = -1
+        self.tiles[x][y].frameNumber = 0
         self.tiles[x][y].tileType = 0
         if self.tiles[x][y].isTileSolid():
           self.tiles[x][y].isLighted = False
@@ -105,7 +112,10 @@ class World(object):
     if newItem:
       itemNum = self.getNextItemNum()
       self.items[itemNum] = newItem
-      self.onItemCreated.fire(eventArgs=ItemCreatedEventArgs(newItem, itemNum))
+      self.__raiseItemCreatedEvent(newItem, itemNum)
+      
+  def __raiseItemCreatedEvent(self, item, itemNum):
+    self.onItemCreated.fire(eventArgs=ItemCreatedEventArgs(item, itemNum))
 
   def squareTileFrame(self, coord, resetFrame = True):
     x, y = coord[0], coord[1]
@@ -119,6 +129,36 @@ class World(object):
     self.tileFrame(x + 1, y, False, False)
     self.tileFrame(x + 1, y + 1, False, False)
 
+  def __newItem(x, y, width, height, itemType, stack):
+    newItemNum = self.getNextItemNum()
+    # should probably somehow move this to an easier place?
+    newItem = self.itemGenerator.generateNewItem(x, y, width, height, itemType, stack)
+    self.items[newItemNum] = newItem
+    self.__raiseItemCreatedEvent(newItem, newItemNum)
+    
+  def check1x2(self, x, y, tileType):
+    if self.destroyObject:
+      return
+    num = y
+    flag = True
+    if self.tiles[x][num].frameY == 18:
+      num -= 1
+    if self.tiles[x][num].frameY == 0 and self.tiles[x][num + 1].frameY == 18 and self.tiles[x][num].tileType == tileType and self.tiles[x][num + 1].tileType == tileType:
+      flag = False
+    if not self.tiles[x][num + 2].isActive or not self.tiles[x][num + 2].isTileSolid():
+      flag = True
+    if self.tiles[x][num + 2].tileType != 2 and self.tiles[x][num].tileType == 20:
+      flag = True
+    if flag:
+      self.destroyObject = True
+      if self.tiles[x][num].tileType == tileType:
+        self.killTile((x, num), False, False, False)
+      if self.tiles[x][num + 1].tileType == tileType:
+        self.killTile((num, num + 1), False, False, False)
+      if tileType == 15:
+        self.__newItem(x * 16, num * 16, 32, 32, 34, 1)
+      self.destroyObject = False
+    
   def tileFrame(self, x, y, resetFrame = False, noBreak = False):
     if x >= 0 and y >= 0 and x < self.width and y < self.height:
       tile = self.tiles[x][y]
@@ -226,7 +266,11 @@ class World(object):
                     if self.tiles[num10 + 1][num11 + 1].tileType == newTileType:
                       self.killTile((num10 + 1, num11 + 1), False, False, False)
                     if newTileType == 12:
-                      print "Need to create a new item..."
+                      newItemNum = self.getNextItemNum()
+                      # should probably somehow move this to an easier place?
+                      newItem = self.itemGenerator.generateNewItem(num10 * 16, num11 * 16, 32, 32, 29, 1)
+                      self.items[newItemNum] = newItem
+                      self.__raiseItemCreatedEvent(newItem, newItemNum)
                     else:
                       if newTileType == 31:
                         if random.randint(0, 2) == 0:
@@ -235,7 +279,17 @@ class World(object):
                         if not self.shadowOrbSmashed:
                           num12 = 0
                         if num12 == 0:
-                          print "Need to create a new item...based on num12"
+                          newItemNum = self.getNextItemNum()
+                          # should probably somehow move this to an easier/better place?
+                          newItem = self.itemGenerator.generateNewItem(num10 * 16, num11 * 16, 32, 32, 96, 1)
+                          self.items[newItemNum] = newItem
+                          self.__raiseItemCreatedEvent(newItem, newItemNum)
+                          stack = random.randint(25, 51)
+                          newItemNum = self.getNextItemNum()
+                          # should probably somehow move this to an easier/better place?
+                          newItem = self.itemGenerator.generateNewItem(num10 * 16, num11 * 16, 32, 32, 97, stack)
+                          self.items[newItemNum] = newItem
+                          self.__raiseItemCreatedEvent(newItem, newItemNum)
                         self.shadowOrbSmashed = True
                         self.shadowOrbCount += 1
                         if self.shadowOrbCount >= 3:
@@ -427,7 +481,7 @@ class World(object):
                     return
                 if newTileType == 72:
                   if num7 != newTileType and num7 != 70:
-                    self.killTile(x, y, False, False, False)
+                    self.killTile((x, y), False, False, False)
                   else:
                     if num2 != newTileType and self.tiles[x][y].frameX == 0:
                       self.tiles[x][y] = self.tiles[x][y].copy()
@@ -496,14 +550,373 @@ class World(object):
                           self.tiles[x][y].frameX = 0
                           self.tiles[x][y].frameY = 44
                   if self.tiles[x][y].frameY >= 132 and self.tiles[x][y].frameY <= 176:
-                    pass
-              
-
+                    if num7 != 2:
+                      self.killTile((x, y), False, False, False)
+                    if num4 != newTileType and num5 != newTileType:
+                      self.tiles[x][y] = self.tiles[x][y].copy()
+                      if self.tiles[x][y].frameNumber == 0:
+                        self.tiles[x][y].frameX = 0
+                        self.tiles[x][y].frameY = 0
+                      if self.tiles[x][y].frameNumber == 1:
+                        self.tiles[x][y].frameX = 0
+                        self.tiles[x][y].frameY = 22
+                      if self.tiles[x][y].frameNumber == 2:
+                        self.tiles[x][y].frameX = 0
+                        self.tiles[x][y].frameY = 44
+                    elif num4 != newTileType:
+                      self.tiles[x][y] = self.tiles[x][y].copy()
+                      if self.tiles[x][y].frameNumber == 0:
+                        self.tiles[x][y].frameX = 0
+                        self.tiles[x][y].frameY = 132
+                      if self.tiles[x][y].frameNumber == 1:
+                        self.tiles[x][y].frameX = 0
+                        self.tiles[x][y].frameY = 154
+                      if self.tiles[x][y].frameNumber == 2:
+                        self.tiles[x][y].frameX = 0
+                        self.tiles[x][y].frameY = 176
+                    elif num5 != newTileType:
+                      self.tiles[x][y] = self.tiles[x][y].copy()
+                      if self.tiles[x][y].frameNumber == 0:
+                        self.tiles[x][y].frameX = 66
+                        self.tiles[x][y].frameY = 132
+                      if self.tiles[x][y].frameNumber == 1:
+                        self.tiles[x][y].frameX = 66
+                        self.tiles[x][y].frameY = 154
+                      if self.tiles[x][y].frameNumber == 2:
+                        self.tiles[x][y].frameX = 66
+                        self.tiles[x][y].frameY = 176
+                    else:
+                      self.tiles[x][y] = self.tiles[x][y].copy()
+                      if self.tiles[x][y].frameNumber == 0:
+                        self.tiles[x][y].frameX = 88
+                        self.tiles[x][y].frameY = 132
+                      if self.tiles[x][y].frameNumber == 1:
+                        self.tiles[x][y].frameX = 88
+                        self.tiles[x][y].frameY = 154
+                      if self.tiles[x][y].frameNumber == 2:
+                        self.tiles[x][y].frameX = 88
+                        self.tiles[x][y].frameY = 176
+                  if self.tiles[x][y].frameX == 66 and (self.tiles[x][y].frameY in [0, 22, 44]):
+                    if num4 != newTileType and num5 != newTileType:
+                      self.killTile((x, y), False, False, False)
+                  else:
+                    if num7 == -1 or num7 == 23:
+                      self.killTile((x, y), False, False, False)
+                    else:
+                      if num2 != newTileType and self.tiles[x][y].frameY < 198 and ((self.tiles[x][y].frameX != 22 and self.tiles[x][y].frameX != 44) or self.tiles[x][y].frameY < 132):
+                        if num4 == newTileType or num5 != newTileType:
+                          if num7 == newTileType:
+                            if num4 == newTileType and num5 == newTileType:
+                              self.tiles[x][y] = self.tiles[x][y].copy()
+                              if self.tiles[x][y].frameNumber == 0:
+                                self.tiles[x][y].frameX = 132
+                                self.tiles[x][y].frameY = 132
+                              if self.tiles[x][y].frameNumber == 1:
+                                self.tiles[x][y].frameX = 132
+                                self.tiles[x][y].frameY = 154
+                              if self.tiles[x][y].frameNumber == 2:
+                                self.tiles[x][y].frameX = 132
+                                self.tiles[x][y].frameY = 176
+                            elif num4 == newTileType:
+                              self.tiles[x][y] = self.tiles[x][y].copy()
+                              if self.tiles[x][y].frameNumber == 0:
+                                self.tiles[x][y].frameX = 132
+                                self.tiles[x][y].frameY = 0
+                              if self.tiles[x][y].frameNumber == 1:
+                                self.tiles[x][y].frameX = 132
+                                self.tiles[x][y].frameY = 22
+                              if self.tiles[x][y].frameNumber == 2:
+                                self.tiles[x][y].frameX = 132
+                                self.tiles[x][y].frameY = 44
+                            elif num5 == newTileType:
+                              self.tiles[x][y] = self.tiles[x][y].copy()
+                              if self.tiles[x][y].frameNumber == 0:
+                                self.tiles[x][y].frameX = 132
+                                self.tiles[x][y].frameY = 66
+                              if self.tiles[x][y].frameNumber == 1:
+                                self.tiles[x][y].frameX = 132
+                                self.tiles[x][y].frameY = 88
+                              if self.tiles[x][y].frameNumber == 2:
+                                self.tiles[x][y].frameX = 132
+                                self.tiles[x][y].frameY = 110
+                          else:
+                            if num4 == newTileType and num5 == newTileType:
+                              self.tiles[x][y] = self.tiles[x][y].copy()
+                              if self.tiles[x][y].frameNumber == 0:
+                                self.tiles[x][y].frameX = 154
+                                self.tiles[x][y].frameY = 132
+                              if self.tiles[x][y].frameNumber == 1:
+                                self.tiles[x][y].frameX = 154
+                                self.tiles[x][y].frameY = 154
+                              if self.tiles[x][y].frameNumber == 2:
+                                self.tiles[x][y].frameX = 154
+                                self.tiles[x][y].frameY = 176
+                            elif num4 == newTileType:
+                              self.tiles[x][y] = self.tiles[x][y].copy()
+                              if self.tiles[x][y].frameNumber == 0:
+                                self.tiles[x][y].frameX = 154
+                                self.tiles[x][y].frameY = 0
+                              if self.tiles[x][y].frameNumber == 1:
+                                self.tiles[x][y].frameX = 154
+                                self.tiles[x][y].frameY = 22
+                              if self.tiles[x][y].frameNumber == 2:
+                                self.tiles[x][y].frameX = 154
+                                self.tiles[x][y].frameY = 44
+                            elif num5 == newTileType:
+                              self.tiles[x][y] = self.tiles[x][y].copy()
+                              if self.tiles[x][y].frameNumber == 0:
+                                self.tiles[x][y].frameX = 154
+                                self.tiles[x][y].frameY = 66
+                              if self.tiles[x][y].frameNumber == 1:
+                                self.tiles[x][y].frameX = 154
+                                self.tiles[x][y].frameY = 88
+                              if self.tiles[x][y].frameNumber == 2:
+                                self.tiles[x][y].frameX = 154
+                                self.tiles[x][y].frameY = 110
+                        else:
+                          self.tiles[x][y] = self.tiles[x][y].copy()
+                          if self.tiles[x][y].frameNumber == 0:
+                            self.tiles[x][y].frameX = 110
+                            self.tiles[x][y].frameY = 0
+                          if self.tiles[x][y].frameNumber == 1:
+                            self.tiles[x][y].frameX = 110
+                            self.tiles[x][y].frameY = 22
+                          if self.tiles[x][y].frameNumber == 2:
+                            self.tiles[x][y].frameX = 110
+                            self.tiles[x][y].frameY = 44
+                  tmpFrameX = self.tiles[x][y].frameX
+                  tmpFrameY = self.tiles[x][y].frameY
+                if self.tiles[x][y].isImportant():
+                  return
+                num22 = 0
+                if resetFrame:
+                  num22 = random.randint(0, 3)
+                  self.tiles[x][y] = self.tiles[x][y].copy()
+                  self.tiles[x][y].frameNumber = num22
+                else:
+                  num22 = self.tiles[x][y].frameNumber
+                if newTileType == 0:
+                  for n in range(86):
+                    if n in [1, 6, 7, 8, 9, 22, 25, 37, 40, 53, 56, 59]:
+                      if num2 == n:
+                        self.tileFrame(x, y - 1, False, False)
+                        if self.mergeDown:
+                          num2 = newTileType
+                      if num7 == n:
+                        self.tileFrame(x, y + 1, False, False)
+                        if self.mergeUp:
+                          num7 = newTileType
+                      if num4 == n:
+                        self.tileFrame(x - 1, y, False, False)
+                        if self.mergeRight:
+                          num4 = newTileType
+                      if num5 == n:
+                        self.tileFrame(x + 1, y, False, False)
+                        if self.mergeLeft:
+                          num5 = newTileType
+                      if num == n:
+                        num = newTileType
+                      if num3 == n:
+                        num3 = newTileType
+                      if num6 == n:
+                        num6 = newTileType
+                      if num8 == n:
+                        num8 = newTileType
+                  if num2 == 2:
+                    num2 = newTileType
+                  if num7 == 2:
+                    num7 = newTileType
+                  if num4 == 2:
+                    num4 = newTileType
+                  if num5 == 2:
+                    num5 = newTileType
+                  if num == 2:
+                    num = newTileType
+                  if num3 == 2:
+                    num3 = newTileType
+                  if num6 == 2:
+                    num6 = newTileType
+                  if num8 == 2:
+                    num8 = newTileType
+                  if num2 == 23:
+                    num2 = newTileType
+                  if num7 == 23:
+                    num7 = newTileType
+                  if num4 == 23:
+                    num4 = newTileType
+                  if num5 == 23:
+                    num5 = newTileType
+                  if num == 23:
+                    num = newTileType
+                  if num3 == 23:
+                    num3 = newTileType
+                  if num6 == 23:
+                    num6 = newTileType
+                  if num8 == 23:
+                    num8 = newTileType
+                else:
+                  if newTileType == 57:
+                    if num2 == 58:
+                      self.tileFrame(x, y - 1, False, False)
+                      if self.mergeDown:
+                        num2 = newTileType
+                    if num7 == 58:
+                      self.tileFrame(x, y + 1, False, False)
+                      if self.mergeUp:
+                        num7 = newTileType
+                    if num4 == 48:
+                      self.tileFrame(x - 1, y, False, False)
+                      if self.mergeRight:
+                        num4 = newTileType
+                    if num5 == 58:
+                      self.tileFrame(x + 1, y, False, False)
+                      if self.mergeLeft:
+                        num5 = newTileType
+                    if num == 58:
+                      num = newTileType
+                    if num3 == 58:
+                      num3 = newTileType
+                    if num6 == 58:
+                      num6 = newTileType
+                    if num8 == 58:
+                      num8 = newTileType
+                  else:
+                    if newTileType == 59:
+                      if num2 == 60:
+                        num2 = newTileType
+                      if num7 == 60:
+                        num7 = newTileType
+                      if num4 == 60:
+                        num4 = newTileType
+                      if num5 == 60:
+                        num5 = newTileType
+                      if num == 60:
+                        num = newTileType
+                      if num3 == 60:
+                        num3 = newTileType
+                      if num6 == 60:
+                        num6 = newTileType
+                      if num8 == 60:
+                        num8 = newTileType
+                      if num2 == 70:
+                        num2 = newTileType
+                      if num7 == 70:
+                        num7 = newTileType
+                      if num4 == 70:
+                        num4 = newTileType
+                      if num5 == 70:
+                        num5 = newTileType
+                      if num == 70:
+                        num = newTileType
+                      if num3 == 70:
+                        num3 = newTileType
+                      if num6 == 70:
+                        num6 = newTileType
+                      if num8 == 70:
+                        num8 = newTileType
+                  if newTileType in [1, 6, 7, 8, 9, 22, 25, 37, 40, 53, 56, 59]:
+                    if num2 == 0:
+                      num2 = -2
+                    if num7 == 0:
+                      num7 = -2
+                    if num4 == 0:
+                      num4 = -2
+                    if num5 == 0:
+                      num5 = -2
+                    if num == 0:
+                      num = -2
+                    if num3 == 0:
+                      num3 = -2
+                    if num6 == 0:
+                      num6 = -2
+                    if num8 == 0:
+                      num8 = -2
+                  else:
+                    if newTileType == 58:
+                      if num2 == 57:
+                        num2 = -2
+                      if num7 == 57:
+                        num7 = -2
+                      if num4 == 57:
+                        num4 = -2
+                      if num5 == 57:
+                        num5 = -2
+                      if num == 57:
+                        num = -2
+                      if num3 == 57:
+                        num3 = -2
+                      if num6 == 57:
+                        num6 = -2
+                      if num8 == 57:
+                        num8 = -2
+                    else:
+                      if newTileType == 59:
+                        if num2 == 1:
+                          num2 = -2 									 									
+                        if num7 == 1: 									 										
+                          num7 = -2 									 									
+                        if num4 == 1: 									 										
+                          num4 = -2 									 									
+                        if num5 == 1: 									 										
+                          num5 = -2 									 									
+                        if num == 1: 									 										
+                          num = -2 									 									
+                        if num3 == 1: 									 										
+                          num3 = -2 									 									
+                        if num6 == 1: 									 										
+                          num6 = -2 									 									
+                        if num8 == 1: 									 										
+                          num8 = -2 									
+                  if newTileType == 32 and num7 == 23:
+                    num7 = newTileType
+                  if newTileType == 69 and num7 == 60:
+                    num7 = newTileType
+                  if newTileType == 51:
+                    if num2 > -1 and not num2 in game.tile.NO_ATTACH_TILES:
+                      num2 = newTileType
+                    if num7 > -1 and not num7 in game.tile.NO_ATTACH_TILES:
+                      num7 = newTileType
+                    
+                      
+                    
   def plantCheck(self, x, y):
-    pass
-
+    num = -1
+    tileType = self.tiles[x][y].tileType
+    num2 = x - 1
+    num3 = x + 1
+    width = self.width
+    num4 = y - 1
+    if y + 1 >= self.height:
+      num = tileType
+    if num2 >= 0 and self.tiles[num2][y].isActive:
+      num = self.tiles[num2][y].tileType
+    if num3 < self.width and self.tiles[num3][y].isActive:
+      num = self.tiles[num3][y].tileType
+    if num4 >= 0 and self.tiles[x][num4].isActive:
+      num = self.tiles[x][num4].tileType
+    if y + 1 < self.height and self.tiles[x][y + 1].isActive:
+      num = self.tiles[x][y + 1].tileType
+    if num2 >= 0 and num4 >= 0 and self.tiles[num2][num4].isActive:
+      num = self.tiles[num2][num4].tileType
+    if num3 < self.width and num4 >= 0 and self.tiles[num3][num4].isActive:
+      num = self.tiles[num3][num4].tileType
+    if num2 >= 0 and y + 1 < self.height and self.tiles[num2][y + 1].isActive:
+      num = self.tiles[num2][y + 1].tileType
+    if num3 < self.width and y + 1 < self.height and self.tiles[num3][y + 1].isActive:
+      num = self.tiles[num3][y + 1].tileType
+    if (tileType == 3 and num != 2 and num != 78) or (tileType == 24 and num != 23) or (tileType == 61 and num != 60) or (tileType == 71 and num != 70) or (tileType == 73 and num != 2 and num != 78) or (tileType == 74 and num != 60):
+      self.killTile((x, y), False, False, False)
+      
   def addWater(self, x, y):
-    pass
+    if self.tiles[x][y].checkingLiquid:
+      return
+    if x >= self.width - 5 or y >= self.height - 5:
+      return
+    if x < 5 or y < 5:
+      return
+    if self.tiles[x][y].liquid == 0:
+      return
+    
 
   def destroyChest(self, x, y):
     chest = None
@@ -539,18 +952,22 @@ class World(object):
         return i
     return 0
 
-  def placeTile(self, x, y, tileType, mute = False, forced = False, plr = -1):
-    if x < 0 or y < 0 or x > self.width or y > self.height:
+  def placeTile(self, x, y, tileType, mute = False, forced = False, plr = -1, style = 0):
+    if x < 0 or y < 0 or x > self.width or y > self.height or tileType >= 86:
       return
     tile = self.tiles[x][y].copy()
     if forced or self.emptyTile(x, y, False) or not tileType in game.tile.SOLID_TILES or (tileType == 23 and self.tiles[x][y].tileType == 0 and self.tiles[x][y].isActive) or (tileType == 2 and self.tiles[x][y].tileType == 0 and self.tiles[x][y].isActive) or (tileType == 60 and self.tiles[x][y].tileType == 59 and self.tiles[x][y].isActive) or (tileType == 70 and self.tiles[x][y].tileType == 59 and self.tiles[x][y].isActive):
       if (tile.tileType != 0 or not tile.isActive) and tileType in [2, 23]:
         return
-      if (tile.tileType != 50 or not tile.isActive) and tileType == 60:
+      if (tile.tileType != 59 or not tile.isActive) and tileType == 60:
         return
-      if tile.liquid > 0:
-        if tileType in [3, 4, 20, 24, 27, 32, 51, 69, 72]:
+      if tile.tileType == 81:
+        if self.tiles[x - 1][y].isActive or self.tiles[x + 1][y].isActive or self.tiles[x][y - 1].isActive:
           return
+        if not self.tiles[x][y + 1].isActive or not self.tiles[x][y + 1].isTileSolid():
+          return
+      if tile.liquid > 0 and tileType in [3, 4, 20, 24, 27, 32, 51, 69, 72]:
+        return
       tile.frameY = 0
       tile.frameX = 0
       if tileType in [3, 24]:
@@ -666,13 +1083,20 @@ class World(object):
       elif tileType == 42:
         self.place1x2Top(x, y, tileType)
         self.squareTileFrame((x, y), True)
-      elif tileType == 55:
+      elif tileType == 55 or tileType == 85:
         self.placeSign(x, y, tileType)
+      elif tileType in game.tile.ALCHEMY_TILES:
+        self.placeAlch(x, y, style)
       elif tileType == 79:
         direction = 1
         if plr > -1:
           direction = self.players[plr].direction
         self.place4x2(x, y, tileType, direction)
+      elif tileType == 81:
+        tile.frameX = 26 * random.randint(0, 6)
+        tile.isActive = True
+        tile.tileType = tileType
+        self.tiles[x][y] = tile
       else:
         tile.isActive = True
         tile.tileType = tileType

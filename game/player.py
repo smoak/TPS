@@ -1,4 +1,6 @@
 from inventory import Inventory
+from util.math import *
+from common.events import EventHook
 
 MAX_ARMOR_SLOTS = 11
 
@@ -32,6 +34,30 @@ class Player:
     self.height = 42
     self.oldPosX = self.posX
     self.oldPosY = self.posY
+    self.hardCore = False
+    self.immune = False
+    self.immuneTime = 0
+    self.onKilled = EventHook()
+    
+  def hurt(self, damage, hitDirection, pvp = False, quiet = False, deathText = " was slain..."):
+    if not self.immune:
+      num = damage
+      if pvp:
+        num = num * 2
+      num2 = calculateDamage(num, self.statDefense)
+      if num2 >= 1.0:
+        self.statLife -= num2
+        self.immune = True
+        self.immuneTime = 40
+        if pvp:
+          self.immuneTime = 8
+        if self.statLife <= 0:
+          self.statLife = 0
+          self.killMe(num2, hitDirection, pvp, deathText)
+        
+  def killMe(self, damage, hitDirection, pvp = False, deathText = " was slain..."):
+    pass
+    # TODO: implement me
     
   def updatePosition(self, newPosition):
     self.oldPosX = self.posX

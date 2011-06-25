@@ -28,14 +28,14 @@ class MessageType:
   Message = 0x19 # 25
   StrikePlayer = 0x1A # 26
   Projectile = 0x1B # 27
-  Unknown28 = 0x1C # 28
+  NpcHit = 0x1C # 28
   ProjectileOwnerInfo = 0x1D # 29
   PvpMode = 0x1E # 30
   Unknown31 = 0x1F # 31
-  Unknown32 = 0x20 # 32
+  ChestItemInfo = 0x20 # 32
   Unknown33 = 0x21 # 33
   Unknown34 = 0x22 # 34
-  Unknown35 = 0x23 # 35
+  HealEffect = 0x23 # 35
   ZoneInfo = 0x24 # 36
   PasswordRequest = 0x25 # 37
   PasswordResponse = 0x26 # 38
@@ -50,6 +50,8 @@ class MessageType:
   Unknown47 = 0x2F # 47
   Unknown48 = 0x30 # 48
   SendSpawn = 0x31 # 49
+  Unknown50 = 0x32 # 50
+  Unknown51 = 0x33 # 51
 
 class Message:
   def __init__(self, messageType):
