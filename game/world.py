@@ -247,6 +247,9 @@ class World(object):
                   else:
                     self.killTile((x, y), False, False, False)
             else:
+              if newTileType == 80:
+                self.cactusFrame(x, y)
+                return
               if newTileType in [12, 31]:
                 if not self.destroyObject:
                   num10 = x
@@ -290,6 +293,15 @@ class World(object):
                           newItem = self.itemGenerator.generateNewItem(num10 * 16, num11 * 16, 32, 32, 97, stack)
                           self.items[newItemNum] = newItem
                           self.__raiseItemCreatedEvent(newItem, newItemNum)
+                        else:
+                          if num12 == 1:
+                            self.__newItem(num10 * 16, num11 * 16, 32, 32, 64, 1)
+                          if num12 == 2:
+                            self.__newItem(num10 * 16, num11 * 16, 32, 32, 162, 1)
+                          if num12 == 3:
+                            self.__newItem(num10 * 16, num11 * 16, 32, 32, 115, 1)
+                          if num12 == 4:
+                            self.__newItem(num10 * 16, num11 * 16, 32, 32, 111, 1)
                         self.shadowOrbSmashed = True
                         self.shadowOrbCount += 1
                         if self.shadowOrbCount >= 3:
@@ -301,6 +313,8 @@ class World(object):
                           print "need to spawn an npc on player"
                         else:
                           print "need to send the chill text to player"
+                    self.destroyObject = False
+                  return
               else:
                 if newTileType == 19:
                   if num4 == newTileType and num5 == newTileType:
@@ -400,7 +414,7 @@ class World(object):
                         self.killTile((x, num11), False, False, False)
                         self.killTile((x, num11 + 1), False, False, False)
                         self.killTile((x, num11 + 2), False, False, False)
-                        print "tileFrame Should generate new item"
+                        self.__newItem(x * 16, y * 16, 16, 16, 25, 1)
                       self.destroyObject = False
                     return
                   if newTileType == 11:
@@ -473,12 +487,26 @@ class World(object):
                   if newTileType == 42:
                     self.check1x2Top(x, y, newTileType)
                     return
-                  if newTileType == 55:
+                  if newTileType == 55 or newTileType == 85:
                     self.checkSign(x, y, newTileType)
                     return
                   if newTileType == 79:
                     self.check4x2(x, y, newTileType)
                     return
+                  if newTileType == 85:
+                    self.check2x2(x, y, newTileType)
+                    return
+                  if newTileType == 81:
+                    if num4 != -1 or num2 != -1 or num5 != -1:
+                      self.killTile((x, y), False, False, False)
+                      return
+                    if num7 < 0 or not num7 in game.tile.SOLID_TILES:
+                      self.killTile((x, y), False, False, False)
+                    return
+                  else:
+                    if newTileType in game.tile.ALCHEMY_TILES:
+                      self.checkAlch(x, y)
+                      return
                 if newTileType == 72:
                   if num7 != newTileType and num7 != 70:
                     self.killTile((x, y), False, False, False)
@@ -876,9 +904,448 @@ class World(object):
                       num2 = newTileType
                     if num7 > -1 and not num7 in game.tile.NO_ATTACH_TILES:
                       num7 = newTileType
-                    
-                      
-                    
+                    if num4 > -1 and not num4 in game.tile.NO_ATTACH_TILES:
+                      num4 = newTileType
+                    if num5 > -1 and not num5 in game.tile.NO_ATTACH_TILES:
+                      num5 = newTileType
+                    if num > -1 and not num in game.tile.NO_ATTACH_TILES:
+                      num = newTileType
+                    if num3 > -1 and not num3 in game.tile.NO_ATTACH_TILES:
+                      num3 = newTileType
+                    if num6 > -1 and not num6 in game.tile.NO_ATTACH_TILES:
+                      num6 = newTileType
+                    if num8 > -1 and not num8 in game.tile.NO_ATTACH_TILES:
+                      num8 = newTileType
+                  if num2 > -1 and not num2 in game.tile.SOLID_TILES and num2 != newTileType:
+                    num2 = -1
+                  if num7 > -1 and not num7 in game.tile.SOLID_TILES and num7 != newTileType:
+                    num7 = -1
+                  if num4 > -1 and not num4 in game.tile.SOLID_TILES and num4 != newTileType:
+                    num4 = -1
+                  if num5 > -1 and not num5 in game.tile.SOLID_TILES and num5 != newTileType:
+                    num5 = -1
+                  if num > -1 and not num in game.tile.SOLID_TILES and num != newTileType:
+                    num = -1
+                  if num3 > -1 and not num3 in game.tile.SOLID_TILES and num3 != newTileType:
+                    num3 = -1
+                  if num6 > -1 and not num6 in game.tile.SOLID_TILES and num6 != newTileType:
+                    num6 = -1
+                  if num8 > -1 and not num8 in game.tile.SOLID_TILES and num8 != newTileType:
+                    num8 = -1
+                  if newTileType in [2, 23, 60, 70]:
+                    num24 = 0
+                    if newTileType in [60, 70]:
+                      num24 = 59
+                    if newTileType == 2:
+                      if num2 == 23:
+                        num2 = 0
+                      if num7 == 23:
+                        num7 = 0
+                      if num4 == 23:
+                        num4 = 0
+                      if num5 == 23:
+                        num5 = 0
+                      if num == 23:
+                        num = 0
+                      if num3 == 23:
+                        num3 = 0
+                      if num6 == 23:
+                        num6 = 0
+                      if num8 == 23:
+                        num8 = 0
+                    if newTileType == 23:
+                      if num2 == 2:
+                        num2 = 0
+                      if num7 == 2:
+                        num7 = 0
+                      if num4 == 2:
+                        num4 = 0
+                      if num5 == 2:
+                        num5 = 0
+                      if num == 2:
+                        num = 0
+                      if num3 == 2:
+                        num3 = 0
+                      if num6 == 2:
+                        num6 = 0
+                      if num8 == 2:
+                        num8 = 0
+                    if num2 != newTileType and num2 != num24 and (num7 == newTileType or num7 == num24):
+                      if num4 == num24 and num5 == newTileType:
+                        if num22 == 0:
+                          tmpFrameX = 0
+                          tmpFrameY = 198
+                        if num22 == 1:
+                          tmpFrameX = 18
+                          tmpFrameY = 198
+                        if num22 == 2:
+                          tmpFrameX = 36
+                          tmpFrameY = 198
+                      if num4 == newTileType and num5 == num24:
+                        if num22 == 0:
+                          tmpFrameX = 54
+                          tmpFrameY = 198
+                        if num22 == 1:
+                          tmpFrameX = 72
+                          tmpFrameY = 198
+                        if  num22 == 2:
+                          tmpFrameX = 90
+                          tmpFrameY = 198
+                    else:
+                      if num7 != newTileType and num7 != num24 and (num2 == newTileType or num2 == num24):
+                        if num4 == num24 and num5 == newTileType:
+                          if num22 == 0:
+                            tmpFrameX = 0
+                            tmpFrameY = 216
+                          if num22 == 1:
+                            tmpFrameX = 18
+                            tmpFrameY = 216
+                          if num22 == 2:
+                            tmpFrameX = 36
+                            tmpFrameY = 216 
+                        else:
+                          if num4 == newTileType and num5 == num24:
+                            if num22 == 0:
+                              tmpFrameX = 54
+                              tmpFrameY = 216
+                            if num22 == 1:
+                              tmpFrameX = 72
+                              tmpFrameY = 216
+                            if num22 == 2:
+                              tmpFrameX = 90
+                              tmpFrameY = 216 
+                      else:
+                        if num4 != newTileType and num4 != num24 and (num5 == newTileType or num5 == num24):
+                          if num2 == num24 and num7 == newTileType:
+                            if num22 == 0:
+                              tmpFrameX = 72
+                              tmpFrameY = 144
+                            if num22 == 1:
+                              tmpFrameX = 72
+                              tmpFrameY = 162
+                            if num22 == 2:
+                              tmpFrameX = 72
+                              tmpFrameY = 180
+                          else:
+                            if num7 == newTileType and num5 == num2:
+                              if num22 == 0:
+                                tmpFrameX = 72
+                                tmpFrameY = 90
+                              if num22 == 1:
+                                tmpFrameX = 72
+                                tmpFrameY = 108
+                              if num22 == 2:
+                                tmpFrameX = 72
+                                tmpFrameY = 126
+                        else:
+                          if num5 != newTileType and num5 != num24 and (num4 == newTileType or num4 == num24):
+                            if num2 == num24 and num7 == newTileType:
+                              if num22 == 0:
+                                tmpFrameX = 90
+                                tmpFrameY = 144
+                              if num22 == 1:
+                                tmpFrameX = 90
+                                tmpFrameY = 162
+                              if num22 == 2:
+                                tmpFrameX = 90
+                                tmpFrameY = 180
+                            else:
+                              if num7 == newTileType and num5 == num2:
+                                if num22 == 0:
+                                  tmpFrameX = 90
+                                  tmpFrameY = 90
+                                if num22 == 1:
+                                  tmpFrameX = 90
+                                  tmpFrameY = 108
+                                if num22 == 2:
+                                  tmpFrameX = 90
+                                  tmpFrameY = 126
+                          else:
+                            if num2 == newTileType and num7 == newTileType and num4 == newTileType and num5 == newTileType:
+                              if num != newTileType and num3 != newTileType and num6 != newTileType and num8 != newTileType:
+                                if num8 == num24:
+                                  if num22 == 0:
+                                    tmpFrameX = 108
+                                    tmpFrameY = 324
+                                  if num22 == 1:
+                                    tmpFrameX = 126
+                                    tmpFrameY = 324
+                                  if num22 == 2:
+                                    tmpFrameX = 144
+                                    tmpFrameY = 324
+                                else:
+                                  if num3 == num24:
+                                    if num22 == 0:
+                                      tmpFrameX = 108
+                                      tmpFrameY = 342
+                                    if num22 == 1:
+                                      tmpFrameX = 126
+                                      tmpFrameY = 342
+                                    if num22 == 2:
+                                      tmpFrameX = 144
+                                      tmpFrameY = 342
+                                  else:
+                                    if num6 == num24:
+                                      if num22 == 0:
+                                        tmpFrameX = 108
+                                        tmpFrameY = 360
+                                      if num22 == 1:
+                                        tmpFrameX = 126
+                                        tmpFrameY = 360
+                                      if num22 == 2:
+                                        tmpFrameX = 144
+                                        tmpFrameY = 360
+                                    else:
+                                      if num == num24:
+                                        if num22 == 0:
+                                          tmpFrameX = 108
+                                          tmpFrameY = 378
+                                        if num22 == 1:
+                                          tmpFrameX = 126
+                                          tmpFrameY = 378
+                                        if num22 == 2:
+                                          tmpFrameX = 144
+                                          tmpFrameY = 378
+                                      else:
+                                        if num22 == 0:
+                                          tmpFrameX = 144
+                                          tmpFrameY = 234
+                                        if num22 == 1:
+                                          tmpFrameX = 198
+                                          tmpFrameY = 234
+                                        if num22 == 2:
+                                          tmpFrameX = 252
+                                          tmpFrameY = 234
+                              else:
+                                if num != newTileType and num8 != newTileType:
+                                  if num22 == 0:
+                                    tmpFrameX = 36
+                                    tmpFrameY = 306
+                                  if num22 == 1:
+                                    tmpFrameX = 54
+                                    tmpFrameY = 306
+                                  if num22 == 2:
+                                    tmpFrameX = 72
+                                    tmpFrameY = 306
+                                else:
+                                  if num3 != newTileType and num6 != newTileType:
+                                    if num22 == 0:
+                                      tmpFrameX = 90
+                                      tmpFrameY = 306
+                                    if num22 == 1:
+                                      tmpFrameX = 108
+                                      tmpFrameY = 306
+                                    if num22 == 2:
+                                      tmpFrameX = 126
+                                      tmpFrameY = 306
+                                  else:
+                                    if num != newTileType and num3 == newTileType and num6 == newTileType and num8 == newTileType:
+                                      if num22 == 0:
+                                        tmpFrameX = 54
+                                        tmpFrameY = 108
+                                      if num22 == 1:
+                                        tmpFrameX = 54
+                                        tmpFrameY = 144
+                                      if num22 == 2:
+                                        tmpFrameX = 54
+                                        tmpFrameY = 180
+                                    else:
+                                      if num == newTileType and num3 != newTileType and num6 == newTileType and num8 == newTileType:
+                                        if num22 == 0:
+                                          tmpFrameX = 36
+                                          tmpFrameY = 108
+                                        if num22 == 1:
+                                          tmpFrameX = 36
+                                          tmpFrameY = 144
+                                        if num22 == 2:
+                                          tmpFrameX = 36
+                                          tmpFrameY = 180
+                                      else:
+                                        if num == newTileType and num3 == newTileType and num6 != newTileType and num8 == newTileType:
+                                          if num22 == 0:
+                                            tmpFrameX = 54
+                                            tmpFrameY = 90
+                                          if num22 == 1:
+                                            tmpFrameX = 54
+                                            tmpFrameY = 126
+                                          if num22 == 2:
+                                            tmpFrameX = 54
+                                            tmpFrameY = 162
+                                        else:
+                                          if num == newTileType and num3 == newTileType and num6 == newTileType and num8 != newTileType:
+                                            if num22 == 0:
+                                              tmpFrameX = 36
+                                              tmpFrameY = 90
+                                            if num22 == 1:
+                                              tmpFrameX = 36
+                                              tmpFrameY = 126
+                                            if num22 == 2:
+                                              tmpFrameX = 36
+                                              tmpFrameY = 162
+                            else:
+                              if num2 == newTileType and num7 == num24 and num4 == newTileType and num5 == newTileType and num == -1 and num3 == -1:
+                                if num22 == 0:
+                                  tmpFrameX = 108
+                                  tmpFrameY = 18
+                                if num22 == 1:
+                                  tmpFrameX = 126
+                                  tmpFrameY = 18
+                                if num22 == 2:
+                                  tmpFrameX = 144
+                                  tmpFrameY = 18
+                              else:
+                                if num2 == num24 and num7 == newTileType and num4 == newTileType and num5 == newTileType and num6 == -1 and num8 == -1:
+                                  if num22 == 0:
+                                    tmpFrameX = 108
+                                    tmpFrameY = 36
+                                  if num22 == 1:
+                                    tmpFrameX = 126
+                                    tmpFrameY = 36
+                                  if num22 == 2:
+                                    tmpFrameX = 144
+                                    tmpFrameY = 36
+                                else:
+                                  if num2 == newTileType and num7 == newTileType and num4 == num24 and num5 == newTileType and num3 == -1 and num8 == -1:
+                                    if num22 == 0:
+                                      tmpFrameX = 198
+                                      tmpFrameY = 0
+                                    if num22 == 1:
+                                      tmpFrameX = 198
+                                      tmpFrameY = 18
+                                    if num22 == 2:
+                                      tmpFrameX = 198
+                                      tmpFrameY = 36
+                                  else:
+                                    if num2 == newTileType and num7 == newTileType and num4 == newTileType and num5 == num24 and num == -1 and num6 == -1:
+                                      if num22 == 0:
+                                        tmpFrameX = 180
+                                        tmpFrameY = 0
+                                      if num22 == 1:
+                                        tmpFrameX = 180
+                                        tmpFrameY = 18
+                                      if num22 == 2:
+                                        tmpFrameX = 180
+                                        tmpFrameY = 36
+                                    else:
+                                      if num2 == newTileType and num7 == num24 and num4 == newTileType and num5 == newTileType:
+                                        if num3 != -1:
+                                          if num22 == 0:
+                                            tmpFrameX = 54
+                                            tmpFrameY = 108
+                                          if num22 == 1:
+                                            tmpFrameX = 54
+                                            tmpFrameY = 144
+                                          if num22 == 2:
+                                            tmpFrameX = 54
+                                            tmpFrameY = 180
+                                        else:
+                                          if num != -1:
+                                            if num22 == 0:
+                                              tmpFrameX = 36
+                                              tmpFrameY = 108
+                                            if num22 == 1:
+                                              tmpFrameX = 36
+                                              tmpFrameY = 144
+                                            if num22 == 2:
+                                              tmpFrameX = 36
+                                              tmpFrameY = 180
+                                      else:
+                                        if num2 == num24 and num7 == newTileType and num4 == newTileType and num5 == newTileType:
+                                          if num8 != -1:
+                                            if num22 == 0:
+                                              tmpFrameX = 54
+                                              tmpFrameY = 90
+                                            if num22 == 1:
+                                              tmpFrameX = 54
+                                              tmpFrameY = 126
+                                            if num22 == 2:
+                                              tmpFrameX = 54
+                                              tmpFrameY = 162
+                                          else:
+                                            if num6 != -1:
+                                              if num22 == 0:
+                                                tmpFrameX = 36
+                                                tmpFrameY = 90
+                                              if num22 == 1:
+                                                tmpFrameX = 36
+                                                tmpFrameY = 126
+                                              if num22 == 2:
+                                                tmpFrameX = 36
+                                                tmpFrameY = 162
+                                        else:
+                                          if num2 == newTileType and num7 == newTileType and num4 == newTileType and num5 == num24:
+                                            if num != -1:
+                                              if num22 == 0:
+                                                tmpFrameX = 54
+                                                tmpFrameY = 90
+                                              if num22 == 1:
+                                                tmpFrameX = 54
+                                                tmpFrameY = 126
+                                              if num22 == 2:
+                                                tmpFrameX = 54
+                                                tmpFrameY = 162
+                                            else:
+                                              if num6 != -1:
+                                                if num22 == 0:
+                                                  tmpFrameX = 54
+                                                  tmpFrameY = 108
+                                                if num22 == 1:
+                                                  tmpFrameX = 54
+                                                  tmpFrameY = 144
+                                                if num22 == 2:
+                                                  tmpFrameX = 54
+                                                  tmpFrameY = 180
+                                          else:
+                                            if num2 == newTileType and num7 == newTileType and num4 == num24 and num5 == newTileType:
+                                              if num3 != -1:
+                                                if num22 == 0:
+                                                  tmpFrameX = 36
+                                                  tmpFrameY = 90
+                                                if num22 == 1:
+                                                  tmpFrameX = 36
+                                                  tmpFrameY = 126
+                                                if num22 == 2:
+                                                  tmpFrameX = 36
+                                                  tmpFrameY = 162
+                                              else:
+                                                if num8 != -1:
+                                                  if num22 == 0:
+                                                    tmpFrameX = 36
+                                                    tmpFrameY = 108
+                                                  if num22 == 1:
+                                                    tmpFrameX = 36
+                                                    tmpFrameY = 144
+                                                  if num22 == 2:
+                                                    tmpFrameX = 36
+                                                    tmpFrameY = 180
+                                            else:
+                                              if (num2 == num24 and num7 == newTileType and num4 == newTileType and num5 == newTileType) or (num2 == newTileType and num7 == num24 and num4 == newTileType and num5 == newTileType) or (num2 == newTileType and num7 == newTileType and num4 == num24 and num5 == newTileType) or (num2 == newTileType and num7 == newTileType and num4 == newTileType and num5 == num24):
+                                                if num22 == 0:
+                                                  tmpFrameX = 18
+                                                  tmpFrameY = 18
+                                                if num22 == 1:
+                                                  tmpFrameX = 36
+                                                  tmpFrameY = 18
+                                                if num22 == 2:
+                                                  tmpFrameX = 54
+                                                  tmpFrameY = 18
+                    if (num2 == newTileType or num2 == num24) and (num7 == newTileType or num7 == num24) and (num4 == newTileType or num4 == num24) and (num5 == newTileType or num5 == num24):
+                      pass
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   def plantCheck(self, x, y):
     num = -1
     tileType = self.tiles[x][y].tileType
