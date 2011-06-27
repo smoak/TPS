@@ -534,52 +534,49 @@ class MessageHandlerService:
     self.messageSender.sendMessageToOtherClients(response, connection)
     
   def __processTileSquareMessage(self, message, connection):
-    num9, num10, num11 = struct.unpack('<hii', message[1:11])
+    num9, num10, num11 = struct.unpack('<hii', message.buf[1:11])
     num = 11
     for j in range(num10, num10 + num9):
       for k in range(num11, num11 + num9):
-        tileFlags = struct.unpack('<B', message[num])[0]
+        tileFlags = struct.unpack('<B', message.buf[num])[0]
         num += 1
         active = self.server.world.tiles[j][k].isActive
         self.server.world.tiles[j][k] = self.server.world.tiles[j][k].copy()
-        self.server.world.tiles[j][k].isActive = ((tileFlags and 1) == 1)
-        self.server.world.tiles[j][k].isLighted = ((tileFlags and 2) == 2)
-        if ((tileFlags and 4) == 4):
+        self.server.world.tiles[j][k].isActive = ((tileFlags & 1) == 1)
+        self.server.world.tiles[j][k].isLighted = ((tileFlags & 2) == 2)
+        if ((tileFlags & 4) == 4):
           self.server.world.tiles[j][k].wall = 1
         else:
           self.server.world.tiles[j][k].wall = 0
-        if ((tileFlags and 8) == 8):
+        if ((tileFlags & 8) == 8):
           self.server.world.tiles[j][k].liquid = 1
         else:
           self.server.world.tiles[j][k].liquid = 0
         if self.server.world.tiles[j][k].isActive:
           tileType = self.server.world.tiles[j][k].tileType
-          self.server.world.tiles[j][k].tileType = struct.unpack('<B', message[num])[0]
+          self.server.world.tiles[j][k].tileType = struct.unpack('<B', message.buf[num])[0]
           num += 1
           if self.server.world.tiles[j][k].isImportant():
-            self.server.world.tiles[j][k].frameX = struct.unpack('<h', message[num:num+2])[0]
+            self.server.world.tiles[j][k].frameX = struct.unpack('<h', message.buf[num:num+2])[0]
             num += 2
-            self.server.world.tiles[j][k].frameY = struct.unpack('<h', message[num:num+2])[0]
+            self.server.world.tiles[j][k].frameY = struct.unpack('<h', message.buf[num:num+2])[0]
             num += 2
           else:
             if not active or self.server.world.tiles[j][k].tileType != tileType:
               self.server.world.tiles[j][k].frameX = -1
               self.server.world.tiles[j][k].frameY = -1
         if self.server.world.tiles[j][k].wall > 0:
-          self.server.world.tiles[j][k].wall = struct.unpack('<B', message[num])[0]
+          self.server.world.tiles[j][k].wall = struct.unpack('<B', message.buf[num])[0]
           num += 1
         if self.server.world.tiles[j][k].liquid > 0:
-          self.server.world.tiles[j][k].liquid = struct.unpack('<B', message[num])[0]
+          self.server.world.tiles[j][k].liquid = struct.unpack('<B', message.buf[num])[0]
           num += 1
-          self.server.world.tiles[j][k].isLava = struct.unpack('<?', message[num])[0]
+          self.server.world.tiles[j][k].isLava = struct.unpack('<?', message.buf[num])[0]
           num += 1
     self.server.world.rangeFrame(num10, num11, num10 + num9, num11 + num9)
     response = Message(MessageType.TileSquare)
     response.appendRaw(messsage.buf[1:])
-    self.messageSender.sendMessageToOtherClients(response, connection)
-    #response.appendInt16(num9)
-    #response.appentInt(num10)
-    #response.appendInt(num11)  
+    self.messageSender.sendMessageToOtherClients(response, connection) 
 
   def __processPlayerBallSwingMessage(self, message, connection):
     response = Message(MessageType.PlayerBallSwing)
@@ -593,6 +590,21 @@ class MessageHandlerService:
     deathText = message.buf[6:]
     connection.player.hurt(damage, hitDirection, isPvpDmg, True, deathText)
     response = Message(MessageType.StrikePlayer)
+    response.appendRaw(message.buf[1:])
+    self.messageSender.sendMessageToOtherClients(response, connection)
+    
+  def __processDoorUpdateMessage(self, message, connection):
+    closeDoor = struct.unpack('<?', message.buf[1])[0]
+    x, y = struct.unpack('<ii', message.buf[2:10])
+    num32 = struct.unpack('<B', message.buf[10])[0]
+    direction = 0
+    if num32 == 0:
+      direction = -1
+    if closeDoor:
+      self.server.world.closeDoor(x, y, True)
+    else:
+      self.server.world.openDoor(x, y, direction)
+    response = Message(MessageType.DoorUpdate)
     response.appendRaw(message.buf[1:])
     self.messageSender.sendMessageToOtherClients(response, connection)
     
@@ -646,7 +658,10 @@ class MessageHandlerService:
         self.__processPlayerBallSwingMessage(message, connection)
       elif message.messageType == MessageType.StrikePlayer:
         self.__processStrikePlayerMessage(message, connection)
+      elif message.messageType == MessageType.DoorUpdate:
+        self.__processDoorUpdateMessage(message, connection)
       else:
         log.warning("Need to implement message type: " + str(message.messageType))
     except Exception as ex:
       log.error(ex)
+      log.error("MessageType: %d" % (message.messageType))

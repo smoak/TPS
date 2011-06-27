@@ -21,6 +21,7 @@ SOLID_TILES = [0, 1, 2, 6, 7, 8, 9, 10, 19, 22, 23, 25, 30, 37, 38, 39, 40, 41, 
 NO_ATTACH_TILES = [3, 4, 10, 13, 14, 15, 16, 17, 18, 19, 20, 21, 27, 50]
 TABLE_TILES = [14, 18, 19]
 SOLID_TOP_TILES = [14, 16, 18, 19]
+ALCHEMY_TILES = [ 82, 83, 84 ]
 
 
 class Tile(object):
