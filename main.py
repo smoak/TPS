@@ -57,18 +57,30 @@ def debug_world():
   # clay tileType 40
   # blue brick tileType 41
   # weird background tile 42
-  
+  # sand: tileType 53  
   # 60 is mud with grass
+
+  # tile notes:
+  # dirt appears to always be:
+  # isActive = True
+  # tileType = 0
+  # isLighted = True
+  # frameX = -1
+  # frameY = -1
+
+  # wall 2 is dirt
+  
   w.tiles = [[air for y in range(w.height)] for x in range(w.width)]
   for x in range(w.width):
     for y in range(200, w.height):
       if x > 100:
         w.tiles[x][y] = Tile()
-        w.tiles[x][y].tileType = 43
+        w.tiles[x][y].tileType = 0
         w.tiles[x][y].isActive = True
         w.tiles[x][y].isLighted = True
         w.tiles[x][y].frameX = -1
         w.tiles[x][y].frameY = -1
+        w.tiles[x][y].wall = 2
       else:
         w.tiles[x][y] = stone
 #      w.tiles[x][y] = dirt  
