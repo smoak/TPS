@@ -60,7 +60,10 @@ class TerrariaServer:
     and sand is above the destroyed sand tile, the sand needs to fall down, so
     a projectile is created).
     """
-    self.messageSender.sendProjectileMessageToAllClients(projectile)
+    if projectile:
+      self.messageSender.sendProjectileMessageToAllClients(projectile)
+    else:
+      log.debug("projectile=None")
 
   def __setupSocket(self):
     try:
