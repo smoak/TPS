@@ -65,6 +65,10 @@ class World(object):
     self.mergeDown = False
     self.mergeLeft = False
     self.mergeRight = False
+    self.onProjectileCreated = EventHook()
+
+  def __newProjectile(self, x, y, speedX, speedY, projectileType, damage, knockBack, owner = 255):
+    log.debug("Creating new projectile")
 
   def getSectionX(self, x):
     return x / 200
@@ -1353,7 +1357,7 @@ class World(object):
                     num2 = self.tiles[x][y - 1].tileType
                   if num2 != newTileType and num2 != 2 and num2 != 60:
                     self.killTile((x, y), False, False, False)
-                if not self.noTileActions and (newTileType == 53 or ((newTileType == 59 or newTileType == 57) and random.randint(0, 5) == 0)):
+                if not self.noTileActions and (newTileType == TileType.Sand or ((newTileType == 59 or newTileType == 57) and random.randint(0, 5) == 0)):
                   if not self.tiles[x][y + 1].isActive:
                     flag4 = True
                     if self.tiles[x][y - 1].isActive and self.tiles[x][y - 1].tileType == 21:
@@ -1364,6 +1368,7 @@ class World(object):
                         type2 = 39
                       if newTileType == 57:
                         type2 = 40
+                      log.debug("Creating a new projectile newTileType: %d Projectile Type: %d " % (newTileType, type2))
                       self.tiles[x][y] = self.tiles[x][y].copy()
                       self.tiles[x][y].isActive = False
                       self.__newProjectile(x * 16 + 8, y * 16 + 8, 0, 0.41, type2, 10, 0, 255)

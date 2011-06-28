@@ -4,9 +4,12 @@ class TileType:
   Dirt = 0
   Stone = 1
   Grass = 2
+  Iron = 6
   Copper = 7
   Gold = 8
   Silver = 9 
+  Meteorite = 37
+  Sand = 53
     
 
 class TileFlags:
