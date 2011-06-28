@@ -75,14 +75,19 @@ def debug_world():
     for y in range(200, w.height):
       if x > 100:
         w.tiles[x][y] = Tile()
-        w.tiles[x][y].tileType = 0
+       # if x == 100 and x <= 110:
+       #   w.tiles[x][y].tileType = 53
+       # elif x == 111 and x <= 120:
+        w.tiles[x][y].tileType = 57
+#        else:
+#          w.tiles[x][y].tileType = 59
         w.tiles[x][y].isActive = True
         w.tiles[x][y].isLighted = True
         w.tiles[x][y].frameX = -1
         w.tiles[x][y].frameY = -1
-        w.tiles[x][y].wall = 2
+#        w.tiles[x][y].wall = 2
       else:
-        w.tiles[x][y] = stone
+        w.tiles[x][y] = dirt
 #      w.tiles[x][y] = dirt  
  # w.tiles[w.spawn[0]][w.spawn[1]] = w.tiles[w.spawn[0]][w.spawn[1]].copy()
  # w.tiles[w.spawn[0]][w.spawn[1]].tileType = 2
