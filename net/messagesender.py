@@ -2,6 +2,7 @@ import logging
 
 from net.message import *
 from net.messagebuilder import MessageBuilder
+from net.messages.projectile import *
 
 log = logging.getLogger()
 
@@ -95,6 +96,11 @@ class MessageSender(object):
     manaUpdateMessage.appendInt(connection.player.mana)
     manaUpdateMessage.appendInt(connection.player.manaMax)
     self.sendMessageToOtherClients(manaUpdateMessage, connection)
+    
+  def sendProjectileMessageToAllClients(self, projectile):
+    projectileMessage = ProjectileMessage()
+    projectileMessage.projectile = projectile
+    self.sendMessageToAllClients(projectileMessage)
 	
   def __sendPlayerDataMessageFor(self, connection):
     playerData = Message(MessageType.PlayerData)

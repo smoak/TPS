@@ -72,37 +72,16 @@ def debug_world():
   
   w.tiles = [[air for y in range(w.height)] for x in range(w.width)]
   for x in range(w.width):
-    for y in range(200, w.height):
+    for y in range(200, 400):
       if x > 100:
         w.tiles[x][y] = Tile()
-       # if x == 100 and x <= 110:
-       #   w.tiles[x][y].tileType = 53
-       # elif x == 111 and x <= 120:
-        w.tiles[x][y].tileType = 57
-#        else:
-#          w.tiles[x][y].tileType = 59
+        w.tiles[x][y].tileType = 53 # sand
         w.tiles[x][y].isActive = True
         w.tiles[x][y].isLighted = True
         w.tiles[x][y].frameX = -1
         w.tiles[x][y].frameY = -1
-#        w.tiles[x][y].wall = 2
       else:
         w.tiles[x][y] = dirt
-#      w.tiles[x][y] = dirt  
- # w.tiles[w.spawn[0]][w.spawn[1]] = w.tiles[w.spawn[0]][w.spawn[1]].copy()
- # w.tiles[w.spawn[0]][w.spawn[1]].tileType = 2
- # w.tiles[w.spawn[0]][w.spawn[1]].isActive = True
- # w.tiles[w.spawn[0]][w.spawn[1]].isLighted = False
-  
-  #w.tiles[w.spawn[0]][w.spawn[1] - 1] = w.tiles[w.spawn[0]][w.spawn[1] - 1].copy()
-  #w.tiles[w.spawn[0]][w.spawn[1] - 1].tileType = 3
-  #w.tiles[w.spawn[0]][w.spawn[1] - 1].isActive = True
-  #w.tiles[w.spawn[0]][w.spawn[1] - 1].isLighted = True
-  #w.tiles[w.spawn[0]][w.spawn[1] - 1].frameX = 18
-  #w.tiles[w.spawn[0]][w.spawn[1] - 1].frameY = 0
-  #w.tiles[w.spawn[0]][w.spawn[1] - 1].wall = 0
-  #w.tiles[w.spawn[0]][w.spawn[1] - 1].liquid = 0
-  #w.tiles[w.spawn[0]][w.spawn[1] - 1].isLava = False
   
   w.worldSurface = 300
   w.rockLayer = 400
