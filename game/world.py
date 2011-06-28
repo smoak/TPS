@@ -11,6 +11,7 @@ import game.tile
 from game.item import *
 from util.item import ItemGenerator
 from game.chest import Chest
+from factory.projectile import ProjectileFactory
 
 log = logging.getLogger()
 
@@ -30,6 +31,7 @@ class World(object):
 
   def __init__(self):
     self.itemGenerator = ItemGenerator()
+    self.projectileFactory = ProjectileFactory()
     self.time = 54001
     self.moonphase = MoonPhase.Four
     self.isBloodMoon = False
@@ -66,9 +68,6 @@ class World(object):
     self.mergeLeft = False
     self.mergeRight = False
     self.onProjectileCreated = EventHook()
-
-  def __newProjectile(self, x, y, speedX, speedY, projectileType, damage, knockBack, owner = 255):
-    log.debug("Creating new projectile")
 
   def getSectionX(self, x):
     return x / 200
@@ -122,7 +121,10 @@ class World(object):
       itemNum = self.getNextItemNum()
       self.items[itemNum] = newItem
       self.__raiseItemCreatedEvent(newItem, itemNum)
-      
+  
+  def __raiseProjectileCreatedEvent(self, projectile):
+    self.onProjectileCreated.fire(projectile=projectile)  
+  
   def __raiseItemCreatedEvent(self, item, itemNum):
     self.onItemCreated.fire(eventArgs=ItemCreatedEventArgs(item, itemNum))
 
@@ -1368,12 +1370,12 @@ class World(object):
                         type2 = 39
                       if newTileType == 57:
                         type2 = 40
-                      log.debug("Creating a new projectile newTileType: %d Projectile Type: %d " % (newTileType, type2))
                       self.tiles[x][y] = self.tiles[x][y].copy()
                       self.tiles[x][y].isActive = False
-                      self.__newProjectile(x * 16 + 8, y * 16 + 8, 0, 0.41, type2, 10, 0, 255)
+                      p = self.projectileFactory.newProjectile(x * 16 + 8, y * 16 + 8, 0, 0.41, type2, 10, 0, 255)
+                      self.__raiseProjectileCreatedEvent(p)
                       # send tile square...  -1, x, y, 1
-                      self.squareTileFrame(x, y, True)
+                      self.squareTileFrame((x, y), True)
                 if tmpFrameX != frameX and tmpFrameY != frameY and frameX >= 0 and frameY >= 0:
                   oldMergeUp = self.mergeUp
                   oldMergeDown = self.mergeDown

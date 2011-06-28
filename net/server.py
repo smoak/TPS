@@ -42,7 +42,8 @@ class TerrariaServer:
     self.messageHandlerService = MessageHandlerService(self, self.messageSender)
     self.updateServerTask = PeriodicExecutor(60, self.__updateServer, ())
     self.world.onItemCreated.addHandler(self.__itemCreatedEventHandler)
-
+    self.world.onProjectileCreated.addHandler(self.__projectileCreatedEventHandler)
+    
   def __itemCreatedEventHandler(self, eventArgs):
     """
     Occurs when the world creates a new item (e.g. by destroying a tile)
@@ -52,6 +53,14 @@ class TerrariaServer:
     if item:
       itemInfoMessage = self.messageSender.messageBuilder.buildItemInfoMessage(itemNum, item.position[0], item.position[1], item.velocity[0], item.velocity[1], item.stackSize, item.itemName)
       self.messageSender.sendMessageToAllClients(itemInfoMessage)
+      
+  def __projectileCreatedEventHandler(self, projectile):
+    """
+    Occurs when the world creates a new projectile (e.g. when sand is destroyed
+    and sand is above the destroyed sand tile, the sand needs to fall down, so
+    a projectile is created).
+    """
+    self.messageSender.sendProjectileMessageToAllClients(projectile)
 
   def __setupSocket(self):
     try:
