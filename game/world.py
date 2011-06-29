@@ -6,7 +6,7 @@ import logging, random
 
 from game.tile import *
 from util.math import *
-from common.events import EventHook, ItemCreatedEventArgs
+from common.events import EventHook, ItemCreatedEventArgs, NewTileSquareEventArgs
 import game.tile
 from game.item import *
 from util.item import ItemGenerator
@@ -31,7 +31,7 @@ class World(object):
 
   def __init__(self):
     self.itemGenerator = ItemGenerator()
-    self.projectileFactory = ProjectileFactory()
+    self.projectileFactory = ProjectileFactory(self)
     self.time = 54001
     self.moonphase = MoonPhase.Four
     self.isBloodMoon = False
@@ -68,6 +68,7 @@ class World(object):
     self.mergeLeft = False
     self.mergeRight = False
     self.onProjectileCreated = EventHook()
+    self.onNewTileSquare = EventHook()
 
   def getSectionX(self, x):
     return x / 200
@@ -127,6 +128,9 @@ class World(object):
   
   def __raiseItemCreatedEvent(self, item, itemNum):
     self.onItemCreated.fire(eventArgs=ItemCreatedEventArgs(item, itemNum))
+    
+  def __raiseNewTileSquareEvent(self, tileX, tileY, size):
+    self.onNewTileSquare.fire(eventArgs=NewTileSquareEventArgs(tileX, tileY, size))
 
   def squareTileFrame(self, coord, resetFrame = True):
     x, y = coord[0], coord[1]
@@ -1375,6 +1379,7 @@ class World(object):
                       p = self.projectileFactory.newProjectile(x * 16 + 8, y * 16 + 8, 0, 0.41, type2, 10, 0, 255)
                       self.__raiseProjectileCreatedEvent(p)
                       # send tile square...  -1, x, y, 1
+                      self.__raiseNewTileSquareEvent(x, y, 1)
                       self.squareTileFrame((x, y), True)
                 if tmpFrameX != frameX and tmpFrameY != frameY and frameX >= 0 and frameY >= 0:
                   oldMergeUp = self.mergeUp

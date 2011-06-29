@@ -29,3 +29,12 @@ class ItemCreatedEventArgs(object):
   def __init__(self, item, itemNumber):
     self.item = item
     self.itemNumber = itemNumber
+    
+class NewTileSquareEventArgs(object):
+  """
+  Event arguments for a new tile square
+  """
+  def __init__(self, tileX, tileY, size):
+    self.tileX = tileX
+    self.tileY = tileY
+    self.size = size
