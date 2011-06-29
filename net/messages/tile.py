@@ -7,14 +7,13 @@ class TileSquareMessage(BaseMessage):
   """
   def __init__(self):
     BaseMessage.__init__(self)
-    self.messageType = MessageType.TileSquare
+    self._messageType = MessageType.TileSquare
     self.size = 0
     self.tileX = 0
     self.tileY = 0
     self.world = None
     
   def create(self):
-    self.writeByte(self.messageType)
     self.writeInt16(self.size)
     halfWidth = (self.size - 1) / 2
     self.writeInt32(self.tileX - halfWidth)

@@ -11,6 +11,8 @@ class BaseMessage(object):
   floatFormatLen = struct.calcsize(floatFormat)
   byteFormat = "<B"
   byteFormatLen = struct.calcsize(byteFormat)
+  messageTypeFormat = "<B"
+  messageTypeFormatLen = struct.calcsize(messageTypeFormat)
   
   def __init__(self):
     self._messageLen = 0
@@ -19,7 +21,10 @@ class BaseMessage(object):
     self._currentPos = 0
     
   def create(self):
-    return struct.pack(self.headerFormat, self._messageLen) + str(self._messageBuf)
+    header = struct.pack(self.headerFormat, self._messageLen)
+    msgType = struct.pack(self.messageTypeFormat, self._messageType)
+    payload = str(self._messageBuf)
+    return header + msgType + payload
     
   def deserialize(self, data):
     self._messageLen, = struct.unpack(self.headerFormat, data[self._currentPos:self._currentPos + self.headerFormatLen])
