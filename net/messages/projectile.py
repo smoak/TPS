@@ -4,11 +4,10 @@ from message import BaseMessage
 class ProjectileMessage(BaseMessage):
   def __init__(self):
     BaseMessage.__init__(self)
-    self.messageType = MessageType.Projectile
+    self._messageType = MessageType.Projectile
     self.projectile = None
   
   def create(self):
-    self.writeByte(self.messageType)
     self.writeInt16(self.projectile.identity)
     self.writeFloat(self.projectile.position[0])
     self.writeFloat(self.projectile.position[1])
