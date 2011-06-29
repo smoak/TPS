@@ -27,7 +27,6 @@ class NetworkState:
   Closed = 3
   Error = 4
 
-
 class TerrariaServer:
 
   def __init__(self, listenAddr, listenPort, world, password=None):
@@ -43,6 +42,7 @@ class TerrariaServer:
     self.updateServerTask = PeriodicExecutor(60, self.__updateServer, ())
     self.world.onItemCreated.addHandler(self.__itemCreatedEventHandler)
     self.world.onProjectileCreated.addHandler(self.__projectileCreatedEventHandler)
+    self.world.onNewTileSquare.addHandler(self.__newTileSquareEventHandler)
     
   def __itemCreatedEventHandler(self, eventArgs):
     """
@@ -53,6 +53,12 @@ class TerrariaServer:
     if item:
       itemInfoMessage = self.messageSender.messageBuilder.buildItemInfoMessage(itemNum, item.position[0], item.position[1], item.velocity[0], item.velocity[1], item.stackSize, item.itemName)
       self.messageSender.sendMessageToAllClients(itemInfoMessage)
+      
+  def __newTileSquareEventHandler(self, eventArgs):
+    """
+    Occurs when the world needs to send a new tile square event
+    """
+    self.messageSender.sendTileSquareMessageToAllClients(eventArgs.tileX, eventArgs.tileY, eventArgs.size, self.world)
       
   def __projectileCreatedEventHandler(self, projectile):
     """

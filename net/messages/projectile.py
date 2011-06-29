@@ -8,7 +8,7 @@ class ProjectileMessage(BaseMessage):
     self.projectile = None
   
   def create(self):
-    self.writeInt32(self.messageType)
+    self.writeByte(self.messageType)
     self.writeInt16(self.projectile.identity)
     self.writeFloat(self.projectile.position[0])
     self.writeFloat(self.projectile.position[1])

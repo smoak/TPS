@@ -124,6 +124,10 @@ class MessageSender(object):
     playerData.appendByte(connection.player.hardCore)
     playerData.appendRaw(connection.player.name)
     self.sendMessageToOtherClients(playerData, connection)
+    
+  def sendTileSquareMessageToAllClients(self, tileX, tileY, size, world):
+    message = self.messageBuilder.buildTileSquareMessage(tileX, tileY, size, world)
+    self.sendMessageToAllClients(message)
 
   def __sendInventoryFor(self, connection):
     # send inventory items

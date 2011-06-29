@@ -1,4 +1,5 @@
 from net.message import *
+from net.messages.tile import *
 
 class MessageBuilder(object):
 
@@ -47,4 +48,12 @@ class MessageBuilder(object):
     message.appendFloat(velY)
     message.appendByte(stack2)
     message.appendRaw(itemName)
+    return message
+    
+  def buildTileSquareMessage(self, tileX, tileY, size, world):
+    message = TileSquareMessage()
+    message.tileX = tileX
+    message.tileY = tileY
+    message.size = size
+    message.world = world
     return message
