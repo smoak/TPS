@@ -73,6 +73,9 @@ class Tile(object):
 
 
 class AirTile(Tile):
+  """
+  This isnt really a tile...
+  """
   def __init__(self):
     Tile.__init__(self)
     self.tileType = 0
@@ -85,6 +88,9 @@ class AirTile(Tile):
     self.liquid = 0
 
 class DirtTile(Tile):
+  """
+  Dirt tile. Most mineable tiles will subclass this
+  """
   def __init__(self):
     Tile.__init__(self)
     self.tileType = TileType.Dirt

@@ -1,6 +1,13 @@
 import struct
 
 class BaseMessage(object):
+  """
+  Base message class. All Terraria messages subclass this.
+  A message takes the form:
+  4 byte header indicating message length.
+  1 byte indicating message type
+  n bytes payload
+  """
   headerFormat = "<i"
   headerFormatLen = struct.calcsize(headerFormat)
   int16Format = "<h"

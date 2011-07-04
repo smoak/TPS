@@ -19,7 +19,9 @@ def debug_world():
   dirt = DirtTile()
   stone = StoneTile()
   
-  # tileType 4 and 5 causes stackoverflow on clients...
+  # tileType 3 and 4 and 5 causes stackoverflow on clients...
+  # tileType 3 - some kind of half grass
+  # tileType 4 - unknown, causes client crash
   # iron = tileType 6
   # copper = tileType 7
   # gold tileType 8
@@ -59,7 +61,7 @@ def debug_world():
   # weird background tile 42
   # sand: tileType 53  
   # 60 is mud with grass
-
+  # 61 corrupted grass - causes client crash
   # tile notes:
   # dirt appears to always be:
   # isActive = True
@@ -71,17 +73,20 @@ def debug_world():
   # wall 2 is dirt
   
   w.tiles = [[air for y in range(w.height)] for x in range(w.width)]
-  for x in range(w.width):
+  tileTypes = [61, 63, 64, 65, 66, 67, 68]
+  for x in range(101):
     for y in range(200, 400):
-      if x > 100:
+      w.tiles[x][y] = dirt
+  
+  for i in range(len(tileTypes)):
+    for x in range(100 + (i * 50), 100 + ((i * 50) + 50)):
+      for y in range(200, 400):
         w.tiles[x][y] = Tile()
-        w.tiles[x][y].tileType = 53 # sand
+        w.tiles[x][y].tileType = tileTypes[i]
         w.tiles[x][y].isActive = True
         w.tiles[x][y].isLighted = True
         w.tiles[x][y].frameX = -1
         w.tiles[x][y].frameY = -1
-      else:
-        w.tiles[x][y] = dirt
   
   w.worldSurface = 300
   w.rockLayer = 400

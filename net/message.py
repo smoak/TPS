@@ -18,7 +18,7 @@ class MessageType:
   Unknown15 = 0x0F # 15
   PlayerHealthUpdate = 0x10 # 16
   ManipulateTile = 0x11 # 17
-  Unknown18 = 0x12 # 18
+  Time = 0x12 # 18
   DoorUpdate = 0x13 # 19
   TileSquare = 0x14 # 20
   ItemInfo = 0x15 # 21
@@ -31,10 +31,10 @@ class MessageType:
   NpcHit = 0x1C # 28
   ProjectileOwnerInfo = 0x1D # 29
   PvpMode = 0x1E # 30
-  Unknown31 = 0x1F # 31
+  ChestContents = 0x1F # 31
   ChestItemInfo = 0x20 # 32
-  Unknown33 = 0x21 # 33
-  Unknown34 = 0x22 # 34
+  ActiveChest = 0x21 # 33
+  KillChest = 0x22 # 34
   HealEffect = 0x23 # 35
   ZoneInfo = 0x24 # 36
   PasswordRequest = 0x25 # 37
@@ -43,15 +43,15 @@ class MessageType:
   NpcTalk = 0x28 # 40
   PlayerBallSwing = 0x29 # 41
   PlayerManaUpdate = 0x2A # 42
-  Unknown43 = 0x2B # 43
-  Unknown44 = 0x2C # 44
+  ManaEffect = 0x2B # 43
+  PlayerKill = 0x2C # 44
   PvpTeam = 0x2D # 45
   SignInteract = 0x2E # 46
-  Unknown47 = 0x2F # 47
-  Unknown48 = 0x30 # 48
+  SignUpdate = 0x2F # 47
+  SetLiquid = 0x30 # 48
   SendSpawn = 0x31 # 49
-  Unknown50 = 0x32 # 50
-  Unknown51 = 0x33 # 51
+  PlayerBuff = 0x32 # 50
+  SpecialNpcSpawn = 0x33 # 51
 
 class Message:
   def __init__(self, messageType):
@@ -83,14 +83,3 @@ class Message:
     result = struct.pack('<i', self.size)
     result = result + self.buf
     return result
-    
-class ManipulateTileMessage(object):
-  def __init__(self, manipulateTile, x, y, flag):
-    self.message = Message(MessageType.ManipulateTile)
-    self.message.appendByte(manipulateTile)
-    self.message.appendInt(x)
-    self.message.appendInt(y)
-    self.message.appendByte(flag)
-    
-  def create(self):
-    return self.message.create()

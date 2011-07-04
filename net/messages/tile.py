@@ -33,3 +33,39 @@ class TileSquareMessage(BaseMessage):
           self.appendByte(self.world.tiles[j][k].liquid)
           self.appendByte(self.world.tiles[j][k].isLava)
     return BaseMessage.create(self)
+
+    
+class ManipulateTileMessage(BaseMessage):
+  """
+  Manipulate tile message. Sent when a tile changes
+  due to mining or some other reason.
+  """
+  
+  class ActionType:
+    """
+    Enum for types of manipulating tiles
+    """
+    KillTile = 0x00
+    PlaceTile = 0x01  
+    KillWall = 0x02
+    PlaceWall = 0x03
+    KillTileNoItem = 0x04
+  
+  def __init__(self):
+    BaseMessage.__init__(self)
+    self._messageType = MessageType.ManipulateTile
+    self.tileX = -1
+    self.tileY = -1
+    self.action = ActionType.KillTile 
+    # NOTE: When the ActionType = Kill{Tile,Wall}, this tileType acts as 
+    # a bool indicating wheter the kill failed or succeeded. For all other
+    # action types this tileType indicates the tileType to change to.    
+    self.tileTypeToChangeTo = -1
+    self.style = -1
+    
+  def create(self):
+    self.writeByte(self.action)
+    self.writeInt32(self.tileX)
+    self.writeInt32(self.tileY)
+    self.writeByte(self.tileTypeToChangeTo)
+    return BaseMessage.create(self)

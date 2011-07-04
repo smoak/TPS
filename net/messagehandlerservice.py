@@ -217,7 +217,17 @@ class MessageHandlerService:
     message.appendByte(0) # G
     message.appendByte(0) # B
     message.appendRaw(self.server.motd)
+    playersMessage = "Current Players: %s" % (self.__buildPlayerList())
+    message.appendRaw(playersMessage)
     connection.socket.send(message.create())
+    
+  def __buildPlayerList(self):
+    cons = self.connectionManager.getConnectionList()
+    players = []
+    for c in cons:
+      if c.authed:
+        players.append(c.player.name)
+    return ", ".join(players)
 
   def __sendPlayerUpdateTwoMessageFor(self, connection):
     playerUpdateTwoMsg = Message(MessageType.PlayerUpdateTwo)
