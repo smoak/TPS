@@ -16,3 +16,6 @@ class Projectile(object):
     
   def __repr__(self):
     return "<Projectile('%s', Type=%d, %dx%d)>" % (self.name, self.projectileType, self.width, self.height)
+
+  def doAI(self):
+    pass

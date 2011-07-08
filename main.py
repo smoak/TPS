@@ -73,7 +73,7 @@ def debug_world():
   # wall 2 is dirt
   
   w.tiles = [[air for y in range(w.height)] for x in range(w.width)]
-  tileTypes = [61, 63, 64, 65, 66, 67, 68]
+  tileTypes = [ 53, 43, 63, 64, 65, 66, 67, 68]
   for x in range(101):
     for y in range(200, 400):
       w.tiles[x][y] = dirt
