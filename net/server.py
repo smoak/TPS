@@ -12,11 +12,13 @@ from messagehandlerservice import MessageHandlerService
 from message import Message
 from messagesender import *
 from util.tasks import PeriodicExecutor
+from util.timer import Timer
 
 HEADER_FORMAT = '<i' # little endian integer
 PROTOCOL_VERSION = 12
 SERVER_VERSION = "Terraria" + str(PROTOCOL_VERSION)
 MESSAGE_TYPE_FORMAT = '<B' # little endian byte (char)
+FPS = 60
 
 log = logging.getLogger()
 
@@ -39,10 +41,13 @@ class TerrariaServer:
     self.connectionManager = ConnectionManager()
     self.messageSender = MessageSender(self.connectionManager)
     self.messageHandlerService = MessageHandlerService(self, self.messageSender)
-    self.updateServerTask = PeriodicExecutor(60, self.__updateServer, ())
+#    self.updateServerTask = PeriodicExecutor(60, self.__updateServer, ())
     self.world.onItemCreated.addHandler(self.__itemCreatedEventHandler)
     self.world.onProjectileCreated.addHandler(self.__projectileCreatedEventHandler)
     self.world.onNewTileSquare.addHandler(self.__newTileSquareEventHandler)
+    self.isRunning = False
+    self.updateTimer = Timer()
+    self.fpsTimer = Timer()
     
   def __itemCreatedEventHandler(self, eventArgs):
     """
@@ -111,7 +116,7 @@ class TerrariaServer:
       for s in socketsToRead:
         self.__doProtocol(self.connectionManager.findConnection(s))
 
-  def __mainLoop(self):
+  def __acceptLoop(self):
     while self.networkState == NetworkState.Running:
       (clientsock, clientaddr) = self.socket.accept()
       # New connection here
@@ -124,11 +129,30 @@ class TerrariaServer:
     self.world.update(3601)
     self.messageSender.sendWorldUpdateToAllClients(self.world)
     self.messageSender.syncPlayers()
+
+  def __mainLoop(self):
+    """
+    Main game loop to process game entities
+    """
+    self.updateTimer.start()
+    while self.isRunning:
+      self.fpsTimer.start()
+      self.world.update(1.0)
+      if self.updateTimer.getTicks() > 3600.0:
+        self.messageSender.sendWorldUpdateToAllClients(self.world)
+        self.messageSender.syncPlayers()
+        # Restart update timer
+        self.updateTimer.start()
+      if self.fpsTimer.getTicks() < (1000.0 / FPS):
+        sleepTime = (( 1000.0 / FPS ) - self.fpsTimer.getTicks() ) / 1000.0
+        time.sleep(sleepTime)
         
   def start(self):
     log.debug("Server starting up...")
     self.__setupSocket()
     # set up a thread to read from the clients sockets
     thread.start_new_thread(self.__readThread, ())
-    thread.start_new_thread(self.updateServerTask.run, ())
+#    thread.start_new_thread(self.updateServerTask.run, ())
+    thread.start_new_thread(self.__acceptLoop, ())
+    self.isRunning = True
     self.__mainLoop()

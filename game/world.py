@@ -57,6 +57,7 @@ class World(object):
     self.chests = []
     self.npcs = []
     self.players = []
+    self.projectiles = []
     self.waterLine = 0
     self.lavaLine = 0
     self.onItemCreated = EventHook()
@@ -1376,6 +1377,7 @@ class World(object):
                     self.tiles[x][y] = self.tiles[x][y].copy()
                     self.tiles[x][y].isActive = False
                     p = self.projectileFactory.newProjectile(x * 16 + 8, y * 16 + 8, 0, 0.41, type2, 10, 0, 255)
+                    self.projectiles.append(p)
                     self.__raiseProjectileCreatedEvent(p)
                     # send tile square...  -1, x, y, 1
                     self.__raiseNewTileSquareEvent(x, y, 1)

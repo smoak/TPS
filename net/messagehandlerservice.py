@@ -218,7 +218,7 @@ class MessageHandlerService:
     message.appendByte(0) # B
     message.appendRaw(self.server.motd)
     playersMessage = "Current Players: %s" % (self.__buildPlayerList())
-    message.appendRaw(playersMessage)
+    message.appendRaw("\n" + playersMessage)
     connection.socket.send(message.create())
     
   def __buildPlayerList(self):
@@ -464,6 +464,9 @@ class MessageHandlerService:
       self.messageSender.sendMessageToAllClients(itemOwnerMsg)
     elif text.startswith("/loc"):
       chatText = "Your location (" + str(connection.player.posX) + ", " + str(connection.player.posY) + ")"
+      self.messageSender.sendChatMessageFromServer(chatText, (255, 255, 15), [connection])
+    elif text.startswith("/time"):
+      chatText = "Current world time is %f" % (self.server.world.time)
       self.messageSender.sendChatMessageFromServer(chatText, (255, 255, 15), [connection])
     else:
       response = Message(MessageType.Message)
