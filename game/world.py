@@ -960,38 +960,38 @@ class World(object):
                   num24 = 59
                 if newTileType == 2:
                   if num2 == 23:
-                    num2 = 0
+                    num2 = num24
                   if num7 == 23:
-                    num7 = 0
+                    num7 = num24
                   if num4 == 23:
-                    num4 = 0
+                    num4 = num24
                   if num5 == 23:
-                    num5 = 0
+                    num5 = num24
                   if num == 23:
-                    num = 0
+                    num = num24
                   if num3 == 23:
-                    num3 = 0
+                    num3 = num24
                   if num6 == 23:
-                    num6 = 0
+                    num6 = num24
                   if num8 == 23:
-                    num8 = 0
+                    num8 = num24
                 if newTileType == 23:
                   if num2 == 2:
-                    num2 = 0
+                    num2 = num24
                   if num7 == 2:
-                    num7 = 0
+                    num7 = num24
                   if num4 == 2:
-                    num4 = 0
+                    num4 = num24
                   if num5 == 2:
-                    num5 = 0
+                    num5 = num24
                   if num == 2:
-                    num = 0
+                    num = num24
                   if num3 == 2:
-                    num3 = 0
+                    num3 = num24
                   if num6 == 2:
-                    num6 = 0
+                    num6 = num24
                   if num8 == 2:
-                    num8 = 0
+                    num8 = num24
                 if num2 != newTileType and num2 != num24 and (num7 == newTileType or num7 == num24):
                   if num4 == num24 and num5 == newTileType:
                     if num22 == 0:
@@ -1352,7 +1352,28 @@ class World(object):
                                               tmpFrameX = 54
                                               tmpFrameY = 18
                 if (num2 == newTileType or num2 == num24) and (num7 == newTileType or num7 == num24) and (num4 == newTileType or num4 == num24) and (num5 == newTileType or num5 == num24):
-                  pass
+                  if num != newTileType and num != num24 and (num3 == newTileType or num3 == num24) and (num6 == newTileType or num6 == num24) and (num8 == newTileType or num8 == num24):
+                    if num22 == 0:
+                      tmpFrameX = 54
+                      tmpFrameY = 108
+                    if num22 == 1:
+                      tmpFrameX = 54
+                      tmpFrameY = 144
+                    if num22 == 2:
+                      tmpFrameX = 54
+                      tmpFrameY = 180
+                  if num3 != newTileType and num3 != num24 and (num == newTileType or num == num24) and (num6 == newTileType or num6 == num24) and (num8 == newTileType or num8 == num24):
+                    if num22 == 0:
+                      tmpFrameX = 36
+                      tmpFrameY = 108
+                    if num22 == 1:
+                      tmpFrameX = 36
+                      tmpFrameY = 144
+                    if num22 == 2:
+                      tmpFrameX = 36
+                      tmpFrameY = 180
+                    
+                    
               self.tiles[x][y] = self.tiles[x][y].copy()
               self.tiles[x][y].frameX = tmpFrameX
               self.tiles[x][y].frameY = tmpFrameY
