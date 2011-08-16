@@ -53,6 +53,30 @@ class Message(object):
   def deserialize(self, rawBinaryData):
     self._messageLen, = unpack(self.headerFormat, rawBinaryData[self._currentPos:self._currentPos + self.headerFormatLen])
     self._currentPos += self.headerFormatLen
+
+  def __writeValue(self, valFormat, val):
+    """
+    Writes a value with a specific format into internal message buffer
+    """
+    self._messageBuf.extend(pack(valFormat, val))
+
+  def _writeByte(self, val):
+    """
+    Writes a byte value into the internal message buffer
+    """
+    self.__writeValue(self.byteFormat, val)
+
+  def _writeInt32(self, val):
+    """
+    Writes a 32 bit signed integer into the internal message buffer
+    """
+    self.__writeValue(self.int32Format, val)
+
+  def _writeBool(self, val):
+    """
+    Writes a boolean value into the internal message buffer
+    """
+    self.__writeValue(self.boolFormat, val)
     
   def _readByte(self, rawData, offset=0):
     """
@@ -79,6 +103,13 @@ class Message(object):
     Reads a 16 bit signed integer (i.e. short) from rawData starting at offset
     """    
     val, = unpack(self.int16Format, rawData[offset:offset+self.int16FormatLen])
+    return val
+
+  def _readInt32(self, rawData, offset=0):
+    """
+    Reads a 32 bit signed integer from rawData starting at offset
+    """
+    val, = unpack(self.int32Format, rawData[offset:offset+self.int32FormatLen])
     return val
  
 class ConnectionRequestMessage(Message):
@@ -295,3 +326,118 @@ class PlayerInventoryMessage(PlayerMessage):
     PlayerMessage.deserialize(self, rawData)
     # TODO
     return self
+
+class RequestWorldDataMessage(Message):
+  """
+  The client sends this message after sending all player info. It doesnt contain any other data though...
+  """
+
+  MESSAGE_TYPE = 0x06
+
+  def __init__(self):
+    Message.__init__(self, self.MESSAGE_TYPE)
+
+  def deserialize(self, rawData):
+    # nothing to deserialize...
+    return self
+
+
+class WorldDataMessage(Message):
+  """
+  Sent to the client in response to a L{RequestWorldDataMessage}
+
+  MessageType: 0x07
+
+  MessageFormat:
+  int32: world time
+  bool: is day time
+  byte: moon phase
+  bool: blood moon?
+  int32: world width (maxTilesX)
+  int32: world height (maxTilesY)
+  int32: spawn X
+  int32: spawn Y
+  int32: world surface
+  int32: rock layer
+  int32: world id
+  byte: boss flag (1 = shadow orb smashed, 2 = downed boss 1, 4 = downed boss 2, 8 = downed boss 3)
+  string: world name
+  """
+  
+  MESSAGE_TYPE = 0x07
+
+  def __init__(self):
+    Message.__init__(self, self.MESSAGE_TYPE)
+    self.world = None
+
+  def serialize(self):
+    """
+    Serializes this instance into a binary format
+    """
+    self._messageBuf = bytearray()
+    self._writeInt32(self.world.time)
+    self._writeBool(self.world.isDay)
+    self._writeByte(self.world.moonPhase)
+    self._writeBool(self.world.isBloodMoon)
+    self._writeInt32(self.world.width)
+    self._writeInt32(self.world.height)
+    self._writeInt32(self.world.spawn[0])
+    self._writeInt32(self.world.spawn[1])
+    self._writeInt32(self.world.worldSurface)
+    self._writeInt32(self.world.rockLayer)
+    self._writeInt32(self.world.worldId)
+    self._writeByte(self.world.getBossFlag())
+    # write the raw name
+    self._messageBuf.extend(self.world.name)
+    return Message.serialize(self)
+
+class TileBlockRequestMessage(Message):
+  """
+  Sent from client to request a section of tiles
+
+  MessageType: 0x08
+
+  MessageFormat:
+  int32: tile x
+  int32: tile y
+  """
+
+  MESSAGE_TYPE = 0x08
+
+  def __init__(self):
+    Message.__init__(self, self.MESSAGE_TYPE)
+    self.tileX = -1
+    self.tileY = -1
+
+  def deserialize(self, rawData):
+    self.tileX = self._readInt32(rawData, self._currentPos)
+    self._currentPos += self.int32FormatLen
+    self.tileY = self._readInt32(rawData, self._currentPos)
+    self._currentPos += self.int32FormatLen
+    return self
+
+class TileLoadingMessage(Message):
+  """
+  Tells the client tiles are about to be sent
+
+  MessageType: 0x09
+
+  MessageFormat:
+  int32: some unknown number
+  string: always 'Receiving tile data'
+  """
+
+  MESSAGE_TYPE = 0x09
+
+  def __init__(self):
+    Message.__init__(self, self.MESSAGE_TYPE)
+    self.text = "Receiving tile data"
+    self.unknownNumber = 0
+
+  def serialize(self):
+    self._messageBuf = bytearray()
+    self._writeInt32(self.unknownNumber, self._currentPos)
+    self._currentPos += self.int32FormatLen
+    self._messageBuf.extend(self.text)
+    self._currentPos += len(self.text)
+    return Message.serialize(self)
