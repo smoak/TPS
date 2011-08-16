@@ -8,7 +8,7 @@ from twisted.python.failure import Failure
 from twisted.internet.threads import deferToThread
 
 
-from messages import ConnectionRequestMessage, DisconnectMessage, RequestPlayerDataMessage, PlayerInfoMessage, PlayerHpMessage, PlayerManaMessage, PlayerBuffMessage
+from messages import ConnectionRequestMessage, DisconnectMessage, RequestPlayerDataMessage, PlayerInfoMessage, PlayerHpMessage, PlayerManaMessage, PlayerBuffMessage, PlayerInventoryMessage, RequestWorldDataMessage, WorldDataMessage, TileBlockRequestMessage, TileLoadingMessage
 from resources.strings import Strings
 
 
@@ -65,6 +65,43 @@ class IMessageHandler(Interface):
     """
     Handles a new connection request message
     """
+
+class ProtocolManager:
+  """
+  Class to manage all connected protocols
+  """
+
+  def __init__(self):
+    self.protocols = []
+
+  def connectionMade(self, proto):
+    """
+    Invoked by a protocol when a connection is made.
+    This will add the protocol to the list of protocols
+    """
+    self.protocols.append(proto)
+
+  def connectionLost(self, proto):
+    """
+    Invoked by a protocol when the connection is lost.
+    This will remove the protocol from the list of protocols
+    """
+    self.protocols.remove(proto)
+
+  def sendMessageToAllProtocols(self, message):
+    """
+    Sends a message to all connected protocols
+    """
+    for p in self.protocols:
+      p.sendMessage(message)
+
+  def sendMessageToAllOtherProtocols(self, message, ignoredProtocols):
+    """
+    Sends a message to all protocols that are not in the ignoredProtocols list
+    """
+    for p in self.protocols:
+      if p not in ignoredProtocols:
+        p.sendMessage(message)
 
 class MessageHandler:
   """
@@ -163,7 +200,8 @@ class BinaryMessageProtocol(Protocol):
     logger.debug("Connection made")
     
   def connectionLost(self, reason):
-    self.factory.clients.remove(self)
+    # tell the protocol manager the connection was lost
+    self.protocolManager.connectionLost(self)
     #self.sendServerMessage(Strings.PlayerDisconnectedFormat % (self.player.name))
 
   def dataReceived(self, data):
@@ -225,7 +263,7 @@ class TerrariaProtocol(BinaryMessageProtocol, MessageDispatcher, TerrariaSession
   """
 
 
-  def __init__(self, messageParser, messageHandlerLocator, world, config, messageReceiver=None):
+  def __init__(self, messageParser, messageHandlerLocator, world, config, protocolManager, messageReceiver=None):
     if messageReceiver is None:
       messageReceiver = self
     messageHandlerLocator.messageHandler = self
@@ -233,11 +271,14 @@ class TerrariaProtocol(BinaryMessageProtocol, MessageDispatcher, TerrariaSession
     BinaryMessageProtocol.__init__(self, messageParser, messageReceiver)
     self.world = world
     self.config = config
+    self.protocolManager = protocolManager
 
   def connectionMade(self):
     """
     Called when a connection is first established
     """
+    # tell the protocol manager that a new connection has arrived
+    self.protocolManager.connectionMade(self)
     self.sessionConnect(self.transport.client)
     logger.debug("New connection with client number %d" % (self.clientNumber))
     BinaryMessageProtocol.connectionMade(self)
@@ -248,6 +289,7 @@ class TerrariaProtocol(BinaryMessageProtocol, MessageDispatcher, TerrariaSession
       message.text = reason
       self.sendMessage(message)
     self.transport.loseConnection()
+    self.protocolManager.connectionLost(self)
 
   def handleConnectionRequest(self, message):
     logger.debug("Got connection request message")
@@ -268,7 +310,6 @@ class TerrariaProtocol(BinaryMessageProtocol, MessageDispatcher, TerrariaSession
   def newPlayer(self, playerInfoMessage):
     self.player = playerInfoMessage.player
     logger.debug("%s has joined!" % (self.player.name))
-    #logger.debug(self.player)
     
   PlayerInfoMessage.handler(newPlayer)
   
@@ -286,3 +327,38 @@ class TerrariaProtocol(BinaryMessageProtocol, MessageDispatcher, TerrariaSession
     logger.debug("Player buff")
     
   PlayerBuffMessage.handler(gotPlayerBuff)
+
+  def gotPlayerInventory(self, playerInventoryMessage):
+    logger.debug("Player inventory")
+
+  PlayerInventoryMessage.handler(gotPlayerInventory)
+
+  def gotWorldRequest(self, worldDataMessage):
+    m = WorldDataMessage()
+    m.world = self.world
+    self.sendMessage(m)
+  
+  RequestWorldDataMessage.handler(gotWorldRequest)
+
+  def gotTileBlockRequest(self, tileBlockRequestMessage):
+    flag3 = True
+    x = tileBlockRequestMessage.tileX
+    y = tileBlockRequestMessage.tileY
+    if x == -1 or y == -1:
+      flag3 = False
+    elif x < 10 or x > self.world.width - 10:
+      flag3 = False
+    elif y < 10 or y > self.world.height - 10:
+      flag3 = False
+    someNumber = 1350 # not quite sure what this is yet
+    if flag3:
+      someNumber *= 2
+    tileLoading = TileLoadingMessage()
+    # not quite sure what this is for yet
+    tileLoading.unknownNumber = someNumber
+    self.sendMessage(tileLoading)
+    # ask for spawn info
+    response = SendSpawnMessage()
+    self.sendMessage(response)
+
+  TileBlockRequestMessage.handler(gotTileBlockRequest)
