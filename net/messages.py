@@ -436,8 +436,6 @@ class TileLoadingMessage(Message):
 
   def serialize(self):
     self._messageBuf = bytearray()
-    self._writeInt32(self.unknownNumber, self._currentPos)
-    self._currentPos += self.int32FormatLen
+    self._writeInt32(self.unknownNumber)
     self._messageBuf.extend(self.text)
-    self._currentPos += len(self.text)
     return Message.serialize(self)
