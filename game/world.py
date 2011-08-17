@@ -25,6 +25,23 @@ class World(SimulationTime):
     self.isBloodMoon = False
     self.moonPhase = 0
     self.dayLength = dayLength
+    self.shadowOrbSmashed = False
+    self.bossOneDowned = False
+    self.bossTwoDowned = False
+    self.bossThreeDowned = False
+    self.leftWorld = 0
+    self.rightWorld = 0
+    self.bottomWorld = 0
+    self.topWorld = 0
+    self.version = 0
+    self.dungeonX = 0
+    self.dungeonY = 0
+    self.spawnMeteor = False
+    self.shadowOrbCount = 0
+    self.invasionDelay = 0
+    self.invasionSize = 0
+    self.invasionType = 0
+    self.invasionX = 0.0
 	
   def _update(self, frames):
     SimulationTime._update(self, frames)
