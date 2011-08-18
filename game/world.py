@@ -60,3 +60,6 @@ class World(SimulationTime):
 
   def getBossFlag(self):
     return 0
+    
+  def __repr__(self):
+    return "<World('%s', '%dx%d')>" % (self.name, self.width, self.height)

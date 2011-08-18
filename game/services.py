@@ -17,3 +17,9 @@ class WorldService(object):
     w.name = worldName
     self.worldRepository.getWorld(w)
     return w
+    
+  def saveWorld(self, world):
+    """
+    Persists a L{World} domain object.
+    """
+    self.worldRepository.saveWorld(world)

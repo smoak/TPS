@@ -11,11 +11,12 @@ class BaseRepository(object):
   def __init__(self, databaseAdapter):
     self.databaseAdapter = databaseAdapter
     
-  def __saveEntity(self, entity):
+  def _saveEntity(self, entity):
     """
     Persists an entity object
     """
-    self.databaseAdapter.saveEntity(entity)
+    self.databaseAdapter.session.add(entity)
+    self.databaseAdapter.session.flush()
 
 class WorldRepository(BaseRepository):
   """
@@ -28,13 +29,13 @@ class WorldRepository(BaseRepository):
     """
     Retrieves a L{World}
     """
-    q = Query(WorldEntity)
+    q = self.databaseAdapter.session.query(WorldEntity)
     if world.worldId > 0:
       q = q.filter_by(id=world.worldId)
     if len(world.name) > 1:
-      q = q.filter_by(name=world.name
-    entity = self.databaseAdapter.query(WorldEntity).from_statement(q.statement).first()
-    self.worldMapper.entityToDomain(entity, domain)
+      q = q.filter_by(name=world.name)
+    entity = q.first()
+    self.worldMapper.entityToDomain(entity, world)
   
   def saveWorld(self, world):
     """
@@ -42,4 +43,4 @@ class WorldRepository(BaseRepository):
     """
     entity = WorldEntity()
     self.worldMapper.domainToEntity(world, entity)
-    self.__saveEntity(entity)
+    BaseRepository._saveEntity(self, entity)
