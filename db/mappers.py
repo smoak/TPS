@@ -7,8 +7,7 @@ class WorldMapper(object):
     """
 	  Maps a L{World} domain object to a L{WorldEntity} object
 	  """
-	  entity.id = domain.worldId
-	  entity.name = domain.name
+    entity.name = domain.name
     entity.time = domain.time
     entity.width = domain.width
     entity.height = domain.height
@@ -41,8 +40,8 @@ class WorldMapper(object):
     """
     Maps a L{WorldEntity} to a L{World} object
     """
-    domain.id = entity.worldId
-	  domain.name = entity.name
+    domain.worldId = entity.id
+    domain.name = entity.name
     domain.time = entity.time
     domain.width = entity.width
     domain.height = entity.height
