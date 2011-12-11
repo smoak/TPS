@@ -42,7 +42,22 @@ class World(SimulationTime):
     self.invasionSize = 0
     self.invasionType = 0
     self.invasionX = 0.0
+    self.tileSections = []
 	
+  def getSectionAt(self, coords):
+    sectionCoords = self._getSectionCoords(coords)
+    return self.tileSections[sectionCoords[0]][sectionCoords[1]]    
+
+  def getSectionsInBlockAround(self, section):
+    maxSections = self._getSectionCoords((self.width, self.height))
+    for x in xrange(section.x - 2, section.x + 3):
+      for y in xrange(section.y - 1, section.y + 2):
+        if x >= 0 and y >= 0 and x < maxSections[0] and y < maxSections[1]:
+          print "section: (%d, %d)" % (x, y)
+          yield self.tileSections[x][y]
+        else:
+          yield None
+
   def _update(self, frames):
     SimulationTime._update(self, frames)
     self.time += 1.0
@@ -61,5 +76,11 @@ class World(SimulationTime):
   def getBossFlag(self):
     return 0
     
+  def getMaxTiles(self):
+    return (self.rightWorld / 16 + 1, self.bottomWorld / 16 + 1)
+    
   def __repr__(self):
     return "<World('%s', '%dx%d')>" % (self.name, self.width, self.height)
+
+  def _getSectionCoords(self, coords):
+    return (coords[0] / 200, coords[1] / 150)

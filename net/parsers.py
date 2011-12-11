@@ -1,7 +1,7 @@
 from struct import calcsize, unpack
 import logging
 
-from messages import ConnectionRequestMessage, PlayerInfoMessage, PlayerHpMessage, PlayerManaMessage, PlayerBuffMessage, PlayerInventoryMessage, RequestWorldDataMessage, TileBlockRequestMessage
+from messages import ConnectionRequestMessage, PlayerInfoMessage, PlayerHpMessage, PlayerManaMessage, PlayerBuffMessage, PlayerInventoryMessage, RequestWorldDataMessage, TileBlockRequestMessage, SpawnMessage
 
 logger = logging.getLogger()
 
@@ -18,7 +18,8 @@ messageLookup = {
   PlayerBuffMessage.MESSAGE_TYPE: (lambda m, s: PlayerBuffMessage(s).deserialize(m)),
   PlayerInventoryMessage.MESSAGE_TYPE: (lambda m, s: PlayerInventoryMessage(s).deserialize(m)),
   RequestWorldDataMessage.MESSAGE_TYPE: (lambda m, s: RequestWorldDataMessage().deserialize(m)),
-  TileBlockRequestMessage.MESSAGE_TYPE: (lambda m, s: TileBlockRequestMessage().deserialize(m))
+  TileBlockRequestMessage.MESSAGE_TYPE: (lambda m, s: TileBlockRequestMessage().deserialize(m)),
+  SpawnMessage.MESSAGE_TYPE: (lambda m, s: SpawnMessage(s).deserialize(m))
 }
 
 class BinaryMessageParser(object):

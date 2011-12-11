@@ -3,6 +3,7 @@ import logging
 
 from net.handlers import MessageHandlerLocator
 from game.player import Player
+from game import tile
 
 logger = logging.getLogger()
 
@@ -71,6 +72,12 @@ class Message(object):
     Writes a 32 bit signed integer into the internal message buffer
     """
     self.__writeValue(self.int32Format, val)
+
+  def _writeInt16(self, val):
+    """
+    Writes a 16 bit signed integer into the internal message buffer
+    """
+    self.__writeValue(self.int16Format, val)
 
   def _writeBool(self, val):
     """
@@ -341,7 +348,6 @@ class RequestWorldDataMessage(Message):
     # nothing to deserialize...
     return self
 
-
 class WorldDataMessage(Message):
   """
   Sent to the client in response to a L{RequestWorldDataMessage}
@@ -439,3 +445,111 @@ class TileLoadingMessage(Message):
     self._writeInt32(self.unknownNumber)
     self._messageBuf.extend(self.text)
     return Message.serialize(self)
+    
+class TileSectionMessage(Message):
+  """
+   
+  MessageType: 0x0A
+  
+  MessageFormat:
+  int16: Always 200
+  int32: x
+  int32: y
+  tile: tile 
+  """
+  
+  MESSAGE_TYPE = 0x0A
+
+  def __init__(self):
+    Message.__init__(self, self.MESSAGE_TYPE)
+    self.x = -1
+    self.y = -1
+    self.tile = None
+
+  def serialize(self):
+    self._messageBuf = bytearray()
+    self._writeInt16(200) # Always 200
+    self._writeInt32(self.x * 200)
+    self._writeInt32(self.y * 150)
+    if self.tile is None:
+      self._writeByte(0) # no flags
+      self._writeByte(0) # not a wall
+      self._writeByte(0) # not a liquid
+      self._writeByte(0) # not lava
+    else:
+      self._writeByte(self.tile.getFlags())
+      if self.tile.active:
+        self._writeByte(self.tile.tileType)
+        if self.tile.isImportant():
+          self._writeInt16(self.tile.frameX)
+          self._writeInt16(self.tile.frameY)
+      if self.tile.wall > 0:
+        self._writeByte(self.tile.wall)
+      if self.tile.liquid > 0:
+        self._writeByte(self.tile.liquid)
+        self._writeByte(self.tile.isLava)
+
+
+class TileConfirmMessage(Message):
+  """
+  
+  MessageType: 0x0B
+
+  MessageFormat:
+  int32: startSectionX
+  int32: startSectionY
+  int32: endSectionX
+  int32: endSectionY
+  """
+
+  MESSAGE_TYPE = 0x0B
+
+  def __init__(self):
+    Message.__init__(self, self.MESSAGE_TYPE)
+    self.startX = -1
+    self.startY = -1
+    self.endX = -1
+    self.endY = -1
+
+  def serialize(self):
+    self._messageBuf = bytearray()
+    self._writeInt32(self.startX)
+    self._writeInt32(self.startY)
+    self._writeInt32(self.endX)
+    self._writeInt32(self.endY)
+
+
+class SendSpawnMessage(Message):
+  """
+  """
+
+  MESSAGE_TYPE = 0x31
+  
+  def __init__(self):
+    Message.__init__(self, self.MESSAGE_TYPE)
+
+
+class SpawnMessage(PlayerMessage):
+  """
+  Spawn Player message.
+  Comes from client and contains
+  the players spawn location.
+
+  MessageType: 0x0C (12)
+  """
+
+  MESSAGE_TYPE = 0x0C
+  
+  def __init__(self, session):
+    PlayerMessage.__init__(self, self.MESSAGE_TYPE, session)
+
+  def deserialize(self, rawBinaryData):
+    """
+    Turns a wire encoded (i.e. binary) object into a PlayerInfoMessage object
+    """
+    PlayerMessage.deserialize(self, rawBinaryData)
+    spawnX = self._readInt32(rawBinaryData, self._currentPos) 
+    self._currentPos += self.int32FormatLen
+    spawnY = self._readInt32(rawBinaryData, self._currentPos) 
+    self._currentPos += self.int32FormatLen
+    self.player.spawn = (spawnX, spawnY)
