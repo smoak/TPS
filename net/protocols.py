@@ -8,7 +8,7 @@ from twisted.python.failure import Failure
 from twisted.internet.threads import deferToThread
 
 
-from messages import ConnectionRequestMessage, DisconnectMessage, RequestPlayerDataMessage, PlayerInfoMessage, PlayerHpMessage, PlayerManaMessage, PlayerBuffMessage, PlayerInventoryMessage, RequestWorldDataMessage, WorldDataMessage, TileBlockRequestMessage, TileLoadingMessage
+from messages import ConnectionRequestMessage, DisconnectMessage, RequestPlayerDataMessage, PlayerInfoMessage, PlayerHpMessage, PlayerManaMessage, PlayerBuffMessage, PlayerInventoryMessage, RequestWorldDataMessage, WorldDataMessage, TileBlockRequestMessage, TileLoadingMessage, TileSectionMessage, TileConfirmMessage, SendSpawnMessage, SpawnMessage
 from resources.strings import Strings
 
 
@@ -190,8 +190,8 @@ class BinaryMessageProtocol(Protocol):
     self.messageParser = messageParser
 
   def sendMessage(self, message):
-    logger.debug("Sending message %s" % (message))
-    logger.debug(self.address)
+#    logger.debug("Sending message %s" % (message))
+#    logger.debug(self.address)
     self.transport.write(message.serialize())
 
   def connectionMade(self):
@@ -256,7 +256,7 @@ class TerrariaSession(object):
 
   getNextAvailableClientNumber = classmethod(getNextAvailableClientNumber)
     
-PROTOCOL_VERSION = "Terraria20"
+PROTOCOL_VERSION = "Terraria36" # version 1.1
 class TerrariaProtocol(BinaryMessageProtocol, MessageDispatcher, TerrariaSession, MessageHandler):
   """
   Base protocol for reading messages from Terraria
@@ -357,8 +357,84 @@ class TerrariaProtocol(BinaryMessageProtocol, MessageDispatcher, TerrariaSession
     # not quite sure what this is for yet
     tileLoading.unknownNumber = someNumber
     self.sendMessage(tileLoading)
+    spawnSection = self.world.getSectionAt(self.world.spawn)
+    print "spawn Section: (%d, %d)" % (spawnSection.x, spawnSection.y)
+    self.sendSection(spawnSection)
+#    self.sendSpawnSectionToPlayer(spawnSection)
+    if flag3:
+      section = self.world.getSectionAt((x, y))
+      self.sendSection(section)
+#      tileSections = self.world.getSectionsInBlockAround(section)
+#      for section in tileSections:
+#        if section is not None:
+#          self.sendSection(section)    
+      tileConfirmMessage = TileConfirmMessage()
+      tileConfirmMessage.startX = section.x - 2
+      tileConfirmMessage.startY = section.y - 1
+      tileConfirmMessage.endX = section.x + 2
+      tileConfirmMessage.endY = section.y + 1
+      self.sendMessage(tileConfirmMessage)
+#      for j in range(section.x - 2, section.x + 3):
+#        for k in range(section.y - 1, section.y + 2):
+#          self.sendSection(self.world.getSectionAt((j, k))
+    tileConfirmMessage = TileConfirmMessage()
+    tileConfirmMessage.startX = spawnSection.x - 2
+    tileConfirmMessage.startY = spawnSection.y - 1
+    tileConfirmMessage.endX = spawnSection.x + 2
+    tileConfirmMessage.endY = spawnSection.y + 1
+    self.sendMessage(tileConfirmMessage)
     # ask for spawn info
     response = SendSpawnMessage()
     self.sendMessage(response)
-
   TileBlockRequestMessage.handler(gotTileBlockRequest)
+
+  def gotSpawnPlayer(self, spawnPlayerMessage):
+    logger.debug("Got %s spawn!" % (spawnPlayerMessage.player.name))
+
+  SpawnMessage.handler(gotSpawnPlayer)
+  
+  def sendSpawnSectionToPlayer(self, spawnSection):
+    """
+    Sends the relevant sections of the world to the player
+    based off the spawn info
+    
+    """
+    tileSections = self.world.getSectionsInBlockAround(spawnSection)
+    print tileSections
+    for section in tileSections:
+      if section is not None:
+        self.sendSection(section)
+      
+
+  def sendSection(self, section):
+    maxSections = self.world._getSectionCoords(self.world.getMaxTiles())
+    print maxSections
+    for x in range(section.x - 2, section.x + 3):
+      for y in range(section.y - 1, section.y + 2):
+        tmpSection = self.world.getSectionAt((x*200, y*150))
+        if tmpSection:
+          toSectionX = x * 200
+          toSectionY = y * 150
+          for i in range(toSectionY, toSectionY + 150):
+            tileSectionMessage = TileSectionMessage()
+            tileSectionMessage.x = toSectionX
+            tileSectionMessage.y = i
+            if len(tmpSection.tiles) > 0:
+              tileSectionMessage.tile = tmpSection.tiles[i]
+          self.sendMessage(tileSectionMessage)    
+    # TODO: this probably could be better
+#    for y in xrange(section.y * 150, section.y * 150 + 150):
+#      tileSectionMessage = TileSectionMessage()
+#      tileSectionMessage.x = section.x * 200
+#      tileSectionMessage.y = y
+#      for x in xrange(section.x * 200, section.x * 200 + 200):
+#        tileSectionMessage.tile = section.getTileAt((x, y))
+#      self.sendMessage(tileSectionMessage)
+    
+    
+
+#  def getSectionX(self, x):
+#    return x / 200
+
+#  def getSectionY(self, y):
+#    return y / 150 

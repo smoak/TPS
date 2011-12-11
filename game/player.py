@@ -19,3 +19,4 @@ class Player(object):
     self.difficulty = 0
     self.mana = 0
     self.manaMax = 0
+    self.spawn = (-1,-1)
