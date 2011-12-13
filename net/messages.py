@@ -118,6 +118,13 @@ class Message(object):
     """
     val, = unpack(self.int32Format, rawData[offset:offset+self.int32FormatLen])
     return val
+
+  def _readFloat(self, rawData, offset=0):
+    """
+    Reads a floating point number starting at offset
+    """
+    val, = unpack(self.floatFormat, rawData[offset:offset+self.floatFormatLen])
+    return val
  
 class ConnectionRequestMessage(Message):
   """
@@ -464,31 +471,34 @@ class TileSectionMessage(Message):
     Message.__init__(self, self.MESSAGE_TYPE)
     self.x = -1
     self.y = -1
-    self.tile = None
+    self.tiles = None
 
   def serialize(self):
     self._messageBuf = bytearray()
     self._writeInt16(200) # Always 200
-    self._writeInt32(self.x * 200)
-    self._writeInt32(self.y * 150)
-    if self.tile is None:
-      self._writeByte(0) # no flags
-      self._writeByte(0) # not a wall
-      self._writeByte(0) # not a liquid
-      self._writeByte(0) # not lava
+    self._writeInt32(self.x)
+    self._writeInt32(self.y)
+    if self.tiles:
+      for tile in self.tiles:
+        self._writeByte(tile.getFlags())
+        if tile.active:
+          self._writeByte(tile.tileType)
+          if tile.isImportant():
+            self._writeInt16(tile.frameX)
+            self._writeInt16(tile.frameY)
+        if tile.wall > 0:
+          self._writeByte(tile.wall)
+        if tile.liquid > 0:
+          self._writeByte(tile.liquid)
+          self._writeByte(tile.isLava)
     else:
-      self._writeByte(self.tile.getFlags())
-      if self.tile.active:
-        self._writeByte(self.tile.tileType)
-        if self.tile.isImportant():
-          self._writeInt16(self.tile.frameX)
-          self._writeInt16(self.tile.frameY)
-      if self.tile.wall > 0:
-        self._writeByte(self.tile.wall)
-      if self.tile.liquid > 0:
-        self._writeByte(self.tile.liquid)
-        self._writeByte(self.tile.isLava)
-
+      # No "active" tiles in this section so send all of that
+      for x in range(200):
+        self._writeByte(0) # no flags
+        self._writeByte(0) # not a wall
+        self._writeByte(0) # not a liquid
+        self._writeByte(0) # not lava
+    return Message.serialize(self)
 
 class TileConfirmMessage(Message):
   """
@@ -517,17 +527,7 @@ class TileConfirmMessage(Message):
     self._writeInt32(self.startY)
     self._writeInt32(self.endX)
     self._writeInt32(self.endY)
-
-
-class SendSpawnMessage(Message):
-  """
-  """
-
-  MESSAGE_TYPE = 0x31
-  
-  def __init__(self):
-    Message.__init__(self, self.MESSAGE_TYPE)
-
+    return Message.serialize(self)
 
 class SpawnMessage(PlayerMessage):
   """
@@ -553,3 +553,50 @@ class SpawnMessage(PlayerMessage):
     spawnY = self._readInt32(rawBinaryData, self._currentPos) 
     self._currentPos += self.int32FormatLen
     self.player.spawn = (spawnX, spawnY)
+    return self
+
+class PlayerUpdateMessage(PlayerMessage):
+  """
+  Sent when a player moves or uses an item
+
+  MessageType: 0x0D (13)
+
+  Format:
+  PlayerID: Byte
+  Control: Byte (Flag)
+  SelectedItem: Byte
+  PositionX: Float
+  PositionY: Float
+  VelocityX: Float
+  VelocityY: Float
+  """
+
+  MESSAGE_TYPE = 0x0D
+
+  def __init__(self, session):
+    PlayerMessage.__init__(self, self.MESSAGE_TYPE, session)
+
+  def deserialize(self, rawData):
+    PlayerMessage.deserialize(self, rawData)
+    control = self._readByte(rawData, self._currentPos)
+    self._currentPos += self.byteFormatLen
+    selectedItem = self._readByte(rawData, self._currentPos)
+    self._currentPos += self.byteFormatLen
+    positionX = self._readFloat(rawData, self._currentPos)
+    self._currentPos += self.floatFormatLen
+    positionY = self._readFloat(rawData, self._currentPos)
+    self._currentPos += self.floatFormatLen
+    velocityX = self._readFloat(rawData, self._currentPos)
+    self._currentPos += self.floatFormatLen
+    velocityY = self._readFloat(rawData, self._currentPos)
+    self._currentPos += self.floatFormatLen
+    return self
+
+class SendSpawnMessage(Message):
+  """
+  """
+
+  MESSAGE_TYPE = 0x31
+  
+  def __init__(self):
+    Message.__init__(self, self.MESSAGE_TYPE)

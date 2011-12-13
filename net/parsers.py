@@ -1,7 +1,7 @@
 from struct import calcsize, unpack
 import logging
 
-from messages import ConnectionRequestMessage, PlayerInfoMessage, PlayerHpMessage, PlayerManaMessage, PlayerBuffMessage, PlayerInventoryMessage, RequestWorldDataMessage, TileBlockRequestMessage, SpawnMessage
+from messages import ConnectionRequestMessage, PlayerInfoMessage, PlayerHpMessage, PlayerManaMessage, PlayerBuffMessage, PlayerInventoryMessage, RequestWorldDataMessage, TileBlockRequestMessage, SpawnMessage, PlayerUpdateMessage
 
 logger = logging.getLogger()
 
@@ -19,6 +19,7 @@ messageLookup = {
   PlayerInventoryMessage.MESSAGE_TYPE: (lambda m, s: PlayerInventoryMessage(s).deserialize(m)),
   RequestWorldDataMessage.MESSAGE_TYPE: (lambda m, s: RequestWorldDataMessage().deserialize(m)),
   TileBlockRequestMessage.MESSAGE_TYPE: (lambda m, s: TileBlockRequestMessage().deserialize(m)),
+  PlayerUpdateMessage.MESSAGE_TYPE: (lambda m, s: PlayerUpdateMessage(s).deserialize(m)),
   SpawnMessage.MESSAGE_TYPE: (lambda m, s: SpawnMessage(s).deserialize(m))
 }
 

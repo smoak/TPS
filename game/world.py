@@ -46,6 +46,7 @@ class World(SimulationTime):
 	
   def getSectionAt(self, coords):
     sectionCoords = self._getSectionCoords(coords)
+    print "getting section at (%d, %d)" % (sectionCoords)
     return self.tileSections[sectionCoords[0]][sectionCoords[1]]    
 
   def getSectionsInBlockAround(self, section):

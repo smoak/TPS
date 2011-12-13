@@ -10,6 +10,7 @@ from twisted.internet.threads import deferToThread
 
 from messages import ConnectionRequestMessage, DisconnectMessage, RequestPlayerDataMessage, PlayerInfoMessage, PlayerHpMessage, PlayerManaMessage, PlayerBuffMessage, PlayerInventoryMessage, RequestWorldDataMessage, WorldDataMessage, TileBlockRequestMessage, TileLoadingMessage, TileSectionMessage, TileConfirmMessage, SendSpawnMessage, SpawnMessage
 from resources.strings import Strings
+from game.tiles import SECTION_WIDTH, SECTION_HEIGHT
 
 
 logger = logging.getLogger()
@@ -407,21 +408,31 @@ class TerrariaProtocol(BinaryMessageProtocol, MessageDispatcher, TerrariaSession
       
 
   def sendSection(self, section):
+    tileSections = self.world.getSectionsInBlockAround(section)
     maxSections = self.world._getSectionCoords(self.world.getMaxTiles())
-    print maxSections
-    for x in range(section.x - 2, section.x + 3):
-      for y in range(section.y - 1, section.y + 2):
-        tmpSection = self.world.getSectionAt((x*200, y*150))
-        if tmpSection:
-          toSectionX = x * 200
-          toSectionY = y * 150
-          for i in range(toSectionY, toSectionY + 150):
-            tileSectionMessage = TileSectionMessage()
-            tileSectionMessage.x = toSectionX
-            tileSectionMessage.y = i
-            if len(tmpSection.tiles) > 0:
-              tileSectionMessage.tile = tmpSection.tiles[i]
-          self.sendMessage(tileSectionMessage)    
+    for section in tileSections:
+      if section is not None:
+        tilesX = section.x * SECTION_WIDTH
+        tilesY = section.y * SECTION_HEIGHT
+        for y in range(tilesY, tilesY + SECTION_HEIGHT):
+          tileSectionMessage = TileSectionMessage()
+          tileSectionMessage.x = tilesX
+          tileSectionMessage.y = y
+          tileSectionMessage.tiles = section.tiles[y*SECTION_WIDTH:y*SECTION_WIDTH+SECTION_WIDTH]
+          self.sendMessage(tileSectionMessage)
+#    for x in range(section.x - 2, section.x + 3):
+#      for y in range(section.y - 1, section.y + 2):
+#        tmpSection = self.world.getSectionAt((x*200, y*150))
+#        if tmpSection:
+#          toSectionX = x * 200
+#          toSectionY = y * 150
+#          for i in range(toSectionY, toSectionY + 150):
+#            tileSectionMessage = TileSectionMessage()
+#            tileSectionMessage.x = toSectionX
+#            tileSectionMessage.y = i
+#            tileSectionMessage.tiles = tmpSection.tiles
+#          self.sendMessage(tileSectionMessage)    
+
     # TODO: this probably could be better
 #    for y in xrange(section.y * 150, section.y * 150 + 150):
 #      tileSectionMessage = TileSectionMessage()
