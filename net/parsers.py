@@ -42,5 +42,10 @@ class BinaryMessageParser(object):
     pos = 0
     messageType, = unpack(self.messageTypeFormat, messageStr[pos:self.messageTypeFormatLen])
     pos += self.messageTypeFormatLen
-    # dont include message type...
-    return messageLookup[messageType](messageStr[1:], session)   
+    try:
+      # dont include message type...
+      parser = messageLookup[messageType](messageStr[1:], session)   
+      return parser
+    except KeyError:
+      logger.error("Need to implement parser for message type: %d" % messageType)
+    return None

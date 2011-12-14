@@ -47,7 +47,7 @@ class Message(object):
 
   def handler(cls, methodfunc):
     MessageHandlerLocator.handlerLookup[cls] = methodfunc
-    logger.debug(MessageHandlerLocator.handlerLookup)
+    #logger.debug(MessageHandlerLocator.handlerLookup)
     return methodfunc
   handler = classmethod(handler)
   

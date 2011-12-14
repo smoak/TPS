@@ -22,40 +22,18 @@ def tmpDebugWorldRemoveMe():
   w.isDay = True
   w.worldSurface = 200
   w.rockLayer = 400
-  for y in range(3):
-    w.tileSections.append([None])
-    for x in range(5):
+  for y in range(4):
+    w.tileSections.append([])
+    for x in range(6):
       ts = TileSection()
       ts.x = x
       ts.y = y
-      for ty in range(SECTION_HEIGHT):
-        for tx in range(SECTION_WIDTH):
-          ts.setTile(tx, ty, dirtTile)
+      if y > 0:
+        for ty in range(SECTION_HEIGHT):
+          for tx in range(SECTION_WIDTH):
+            ts.setTile(tx, ty, dirtTile)
       w.tileSections[y].append(ts)
-#  t = Tile()
-#  t.active = True
-#  t.tileType = 0
-#  for x in range(10):
-#    w.tileSections.append([])
-#    for y in range(10):
-#      ts = TileSection()
-#      ts.x = x
-#      ts.y = y
-#      if y > 0:
-#        for ty in range(150):
-#          for tx in range(200):
-#            ts.tiles.append(t)
-#      w.tileSections[x].append(ts)
-#  for i in range(5):
-#    w.tileSections.append([None])
-#    for y in range(1, 3):
-#      ts = TileSection()
-#      ts.x = i
-#      ts.y = y
-#      for ty in range(SECTION_HEIGHT):
-#        for tx in range(SECTION_WIDTH):
-#          ts.setTile(tx, ty, dirtTile)
-#      w.tileSections[i].append(ts)
+  print w.tileSections
   return w
 
 class TerrariaServer:
