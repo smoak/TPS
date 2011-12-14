@@ -256,13 +256,13 @@ class TerrariaSession(object):
     return cls.lastClientNumber + 1
 
   getNextAvailableClientNumber = classmethod(getNextAvailableClientNumber)
+
     
 PROTOCOL_VERSION = "Terraria36" # version 1.1
 class TerrariaProtocol(BinaryMessageProtocol, MessageDispatcher, TerrariaSession, MessageHandler):
   """
   Base protocol for reading messages from Terraria
   """
-
 
   def __init__(self, messageParser, messageHandlerLocator, world, config, protocolManager, messageReceiver=None):
     if messageReceiver is None:
@@ -358,35 +358,33 @@ class TerrariaProtocol(BinaryMessageProtocol, MessageDispatcher, TerrariaSession
     # not quite sure what this is for yet
     tileLoading.unknownNumber = someNumber
     self.sendMessage(tileLoading)
+    # grab the spawn section and send it to the connecting player
     spawnSection = self.world.getSectionAt(self.world.spawn)
-    print "spawn Section: (%d, %d)" % (spawnSection.x, spawnSection.y)
     self.sendSection(spawnSection)
-#    self.sendSpawnSectionToPlayer(spawnSection)
+    
+    # not sure what this flag means but its necessary...
     if flag3:
       section = self.world.getSectionAt((x, y))
       self.sendSection(section)
-#      tileSections = self.world.getSectionsInBlockAround(section)
-#      for section in tileSections:
-#        if section is not None:
-#          self.sendSection(section)    
       tileConfirmMessage = TileConfirmMessage()
       tileConfirmMessage.startX = section.x - 2
       tileConfirmMessage.startY = section.y - 1
       tileConfirmMessage.endX = section.x + 2
       tileConfirmMessage.endY = section.y + 1
       self.sendMessage(tileConfirmMessage)
-#      for j in range(section.x - 2, section.x + 3):
-#        for k in range(section.y - 1, section.y + 2):
-#          self.sendSection(self.world.getSectionAt((j, k))
+
     tileConfirmMessage = TileConfirmMessage()
     tileConfirmMessage.startX = spawnSection.x - 2
     tileConfirmMessage.startY = spawnSection.y - 1
     tileConfirmMessage.endX = spawnSection.x + 2
     tileConfirmMessage.endY = spawnSection.y + 1
     self.sendMessage(tileConfirmMessage)
+
+    # now that all the sections have been sent
     # ask for spawn info
     response = SendSpawnMessage()
     self.sendMessage(response)
+
   TileBlockRequestMessage.handler(gotTileBlockRequest)
 
   def gotSpawnPlayer(self, spawnPlayerMessage):
@@ -399,23 +397,15 @@ class TerrariaProtocol(BinaryMessageProtocol, MessageDispatcher, TerrariaSession
     logger.debug("Got %s player update" % (playerUpdateMessage.player.name))
 
   PlayerUpdateMessage.handler(gotPlayerUpdateMessage)
-  
-  def sendSpawnSectionToPlayer(self, spawnSection):
-    """
-    Sends the relevant sections of the world to the player
-    based off the spawn info
-    
-    """
-    tileSections = self.world.getSectionsInBlockAround(spawnSection)
-    print tileSections
-    for section in tileSections:
-      if section is not None:
-        self.sendSection(section)
-      
 
   def sendSection(self, section):
+    """
+    Sends a section and the surrounding
+    sections in a block around the current section
+
+    
+    """
     tileSections = self.world.getSectionsInBlockAround(section)
-    maxSections = self.world._getSectionCoords(self.world.getMaxTiles())
     for section in tileSections:
       if section is not None:
         tilesX = section.x * SECTION_WIDTH

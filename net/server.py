@@ -33,7 +33,6 @@ def tmpDebugWorldRemoveMe():
           for tx in range(SECTION_WIDTH):
             ts.setTile(tx, ty, dirtTile)
       w.tileSections[y].append(ts)
-  print w.tileSections
   return w
 
 class TerrariaServer:
