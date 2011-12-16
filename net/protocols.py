@@ -163,7 +163,7 @@ class MessageDispatcher:
   
     Dispatch it to a local handler call it.
     """
-    logger.debug("Dispatching message")
+    #logger.debug("Dispatching message")
   #  logger.debug(message)
     handler = self.messageHandlerLocator.locateHandler(message)
     if handler is None:

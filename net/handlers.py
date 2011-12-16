@@ -12,7 +12,7 @@ class MessageHandlerLocator:
   messageHandler = None
 
   def locateHandler(self, message):
-    logger.debug("Locating handler for message %r" % (message,))
+#    logger.debug("Locating handler for message %r" % (message,))
     messageClass = message.__class__
     try:
       handlerFunc = self.handlerLookup[messageClass]

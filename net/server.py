@@ -28,10 +28,9 @@ def tmpDebugWorldRemoveMe():
       ts = TileSection()
       ts.x = x
       ts.y = y
-      if y > 0:
-        for ty in range(SECTION_HEIGHT):
-          for tx in range(SECTION_WIDTH):
-            ts.setTile(tx, ty, dirtTile)
+      for ty in range(SECTION_HEIGHT):
+        for tx in range(SECTION_WIDTH):
+          ts.setTile(tx, ty, dirtTile)
       w.tileSections[y].append(ts)
   return w
 
