@@ -1,26 +1,44 @@
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Table, Column, Integer, String, MetaData, ForeignKey
-from sqlalchemy.orm import mapper
-
-metadata = MetaData()
-items_table = Table('items', metadata, Column('id', Integer, primary_key=True), Column('type', Integer), Column('name', String), Column('height', Integer), Column('width', Integer))
+from sqlalchemy import Column, Integer, String, Float, Boolean
 
 Base = declarative_base()
-class ItemEntity(Base):
-  __tablename__ = 'items'
-  
+
+class WorldEntity(Base):
+  """
+  Represents an entry in the World table
+  """
+
+  __tablename__ = "World"
+
   id = Column(Integer, primary_key=True)
   name = Column(String)
-  height = Column(Integer)
+  time = Column(Integer)
   width = Column(Integer)
-  type = Column(Integer)
-  
-  def __init__(self, name, type, width, height):
-    self.name = name
-    self.type = type
-    self.width = width
-    self.height = height
-    self.mapper = mapper(ItemEntity, items_table) 
-    
+  height = Column(Integer)
+  spawnX = Column(Integer)
+  spawnY = Column(Integer)
+  worldSurface = Column(Float)
+  rockLayer = Column(Float)
+  isDay = Column(Boolean)
+  isBloodMoon = Column(Boolean)
+  moonPhase = Column(Integer)
+  shadowOrbSmashed = Column(Boolean)
+  bossOneDowned = Column(Boolean)
+  bossTwoDowned = Column(Boolean)
+  bossThreeDowned = Column(Boolean)
+  leftWorld = Column(Integer)
+  rightWorld = Column(Integer)
+  bottomWorld = Column(Integer)
+  topWorld = Column(Integer)
+  version = Column(Integer)
+  dungeonX = Column(Integer)
+  dungeonY = Column(Integer)
+  spawnMeteor = Column(Boolean)
+  shadowOrbCount = Column(Integer)
+  invasionDelay = Column(Integer)
+  invasionSize = Column(Integer)
+  invasionType = Column(Integer)
+  invasionX = Column(Float)
+
   def __repr__(self):
-    return "<ItemEntity('%s', Type='%d', '%d'x'%d')>" % (self.name, self.type, self.width, self.height)
+    return "<WorldEntity('%d', '%s', '%dx%d')>" % (self.id, self.name, self.width, self.height)
