@@ -3,7 +3,7 @@ import logging
 
 from net.handlers import MessageHandlerLocator
 from game.player import Player
-from game import tile
+from game import tiles
 
 logger = logging.getLogger()
 
