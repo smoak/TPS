@@ -8,7 +8,7 @@ from twisted.python.failure import Failure
 from twisted.internet.threads import deferToThread
 
 
-from messages import ConnectionRequestMessage, DisconnectMessage, RequestPlayerDataMessage, PlayerInfoMessage, PlayerHpMessage, PlayerManaMessage, PlayerBuffMessage, PlayerInventoryMessage, RequestWorldDataMessage, WorldDataMessage, TileBlockRequestMessage, TileLoadingMessage, TileSectionMessage, TileConfirmMessage, SendSpawnMessage, SpawnMessage, PlayerUpdateMessage
+from messages import ConnectionRequestMessage, DisconnectMessage, RequestPlayerDataMessage, PlayerInfoMessage, PlayerHpMessage, PlayerManaMessage, PlayerBuffMessage, PlayerInventoryMessage, RequestWorldDataMessage, WorldDataMessage, TileBlockRequestMessage, TileLoadingMessage, TileSectionMessage, TileConfirmMessage, SendSpawnMessage, SpawnMessage, PlayerUpdateMessage, ChatMessage
 from resources.strings import Strings
 from game.tiles import SECTION_WIDTH, SECTION_HEIGHT
 
@@ -258,7 +258,7 @@ class TerrariaSession(object):
   getNextAvailableClientNumber = classmethod(getNextAvailableClientNumber)
 
     
-PROTOCOL_VERSION = "Terraria36" # version 1.1
+PROTOCOL_VERSION = "Terraria39" # version 1.1.2
 class TerrariaProtocol(BinaryMessageProtocol, MessageDispatcher, TerrariaSession, MessageHandler):
   """
   Base protocol for reading messages from Terraria
@@ -310,6 +310,7 @@ class TerrariaProtocol(BinaryMessageProtocol, MessageDispatcher, TerrariaSession
   
   def newPlayer(self, playerInfoMessage):
     self.player = playerInfoMessage.player
+   
     logger.debug("%s has joined!" % (self.player.name))
     
   PlayerInfoMessage.handler(newPlayer)
@@ -402,18 +403,20 @@ class TerrariaProtocol(BinaryMessageProtocol, MessageDispatcher, TerrariaSession
     """
     Sends a section and the surrounding
     sections in a block around the current section
-
-    
     """
     tileSections = self.world.getSectionsInBlockAround(section)
     for section in tileSections:
       if section is not None:
         tilesX = section.x * SECTION_WIDTH
         tilesY = section.y * SECTION_HEIGHT
+        # What we are doing here is sending SECTION_WIDTH tiles at a time
+        # going down.
+        tileStart = 0
         for y in range(tilesY, tilesY + SECTION_HEIGHT):
           tileSectionMessage = TileSectionMessage()
           tileSectionMessage.x = tilesX
           tileSectionMessage.y = y
           if section.tiles:
-            tileSectionMessage.tiles = section.tiles[y*SECTION_WIDTH:y*SECTION_WIDTH+SECTION_WIDTH]
+            tileSectionMessage.tiles = section.tiles[tileStart:tileStart + SECTION_WIDTH]
+          tileStart += SECTION_WIDTH
           self.sendMessage(tileSectionMessage)

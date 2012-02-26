@@ -16,6 +16,8 @@ class TileType:
   Air = -1
   Dirt = 0
   Stone = 1
+  Iron = 6
+  
 
 class Tile:
   """
@@ -51,6 +53,7 @@ class Tile:
 
 airTile = Tile(TileType.Air,isLighted=True,frameX=0,frameY=0,wall=0,liquid=0)
 dirtTile = Tile(TileType.Dirt, isLighted=True, wall=0, liquid=0, active=True)
+ironTile = Tile(TileType.Iron, isLighted=True, wall=0, liquid=0, active=True)
 
 class TileSection:
   """
@@ -84,14 +87,12 @@ class TileSection:
         self.tiles.append(airTile)
       self.tiles[y * SECTION_WIDTH + x] = tile
     
-    
-
   def getTileAt(self, coord):
     """
     Gets a tile at a specified x, y coordinate
     Formula is: y * width + x
     Width = 200 (always?)
     """
-    if len(self.tiles) > 0 and coord[0] > 0 and coord[1] > 0 and (coord[1] * 200 + coord[0]) < len(self.tiles):
+    if len(self.tiles) > 0 and coord[0] > 0 and coord[1] > 0 and (coord[1] * SECTION_WIDTH + coord[0]) < len(self.tiles):
       return self.tiles[coord[1] * SECTION_WIDTH + coord[0]]
     return None

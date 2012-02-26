@@ -5,7 +5,7 @@ from twisted.internet.endpoints import serverFromString
 
 from factories import TerrariaFactory
 from game.world import World
-from game.tiles import TileSection, Tile, dirtTile, airTile, SECTION_WIDTH, SECTION_HEIGHT
+from game.tiles import TileSection, Tile, dirtTile, airTile, ironTile, SECTION_WIDTH, SECTION_HEIGHT
 
 
 logger = logging.getLogger()
@@ -22,15 +22,16 @@ def tmpDebugWorldRemoveMe():
   w.isDay = True
   w.worldSurface = 200
   w.rockLayer = 400
+  topLeftTs = TileSection()
   for y in range(4):
     w.tileSections.append([])
     for x in range(6):
       ts = TileSection()
       ts.x = x
       ts.y = y
-      for ty in range(SECTION_HEIGHT):
+      for ty in range(50, SECTION_HEIGHT):
         for tx in range(SECTION_WIDTH):
-          ts.setTile(tx, ty, dirtTile)
+          ts.setTile(tx, ty, ironTile)
       w.tileSections[y].append(ts)
   return w
 

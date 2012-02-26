@@ -600,3 +600,31 @@ class SendSpawnMessage(Message):
   
   def __init__(self):
     Message.__init__(self, self.MESSAGE_TYPE)
+
+class ChatMessage(Message):
+  """
+  A Chat message with colors
+  """
+  
+  MESSAGE_TYPE = 0x19
+  
+  def __init__(self):
+    Message.__init__(self, self.MESSAGE_TYPE)
+    # default to the server sent it
+    # this is going to be the id of the
+    # player that sent the message
+    # 255 means the server sent the message
+    self.sentFromId = 255
+    # The color of the mesage
+    # (R, G, B)
+    self.color = (0x00, 0x00, 0x00)
+    self.text = ""
+    
+  def serialize(self):
+    self._messageBuf = bytearray()
+    self._writeByte(self.sentFromId)
+    self._writeByte(self.color[0])
+    self._writeByte(self.color[1])
+    self._writeByte(self.color[2])
+    self._messageBuf.extend(self.text)
+    return Message.serialize(self)
