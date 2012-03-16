@@ -17,6 +17,9 @@ class TileType:
   Dirt = 0
   Stone = 1
   Iron = 6
+  Copper = 7
+  Gold = 8
+  Silver = 9
   
 
 class Tile:

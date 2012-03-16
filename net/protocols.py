@@ -87,7 +87,8 @@ class ProtocolManager:
     Invoked by a protocol when the connection is lost.
     This will remove the protocol from the list of protocols
     """
-    self.protocols.remove(proto)
+    if proto in self.protocols:
+      self.protocols.remove(proto)
 
   def sendMessageToAllProtocols(self, message):
     """
